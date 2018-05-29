@@ -4,8 +4,11 @@ threadsafe: true
 service: backend
 
 handlers:
-- url: /.*
+- url: /users\.php
   script: users.php
+
+- url: /investimentos/read\.php
+  script: investimentos/read.php
 
 env_variables:
   FIREBASE_PROJECT_ID: 'upcash-md'
