@@ -1,14 +1,26 @@
-runtime: php55
-api_version: 1
-threadsafe: true
-service: backend
 
-handlers:
-- url: /users\.php
-  script: users.php
+runtime: php
+env: flex
+application: upcash-md
 
-- url: /investimentos/read\.php
-  script: investimentos/read.php
+runtime_config:
+  document_root: .
 
 env_variables:
   FIREBASE_PROJECT_ID: 'upcash-md'
+
+
+# api_version: 1
+# threadsafe: true
+
+# runtime: php55
+# application: upcash-md
+# service: backend
+
+# handlers:
+# - url: /users\.php
+#   script: users.php
+
+# - url: /investimentos/read\.php
+#   script: investimentos/read.php
+
