@@ -1,0 +1,11 @@
+runtime: php55
+api_version: 1
+threadsafe: true
+service: backend
+
+handlers:
+- url: /.*
+  script: users.php
+
+env_variables:
+  FIREBASE_PROJECT_ID: 'upcash-md'
