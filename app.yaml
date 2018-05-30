@@ -1,7 +1,7 @@
 
 runtime: php
 env: flex
-application: upcash-md
+service: backend
 
 runtime_config:
   document_root: .
