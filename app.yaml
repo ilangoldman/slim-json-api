@@ -1,10 +1,9 @@
 
 runtime: php
 env: flex
-service: backend
 
 runtime_config:
-  document_root: .
+  document_root: public
 
 env_variables:
   FIREBASE_PROJECT_ID: 'upcash-md'
