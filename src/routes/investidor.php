@@ -1,6 +1,7 @@
 <?php
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use \Service\InvestidorService as InvestidorService;
 // TODO
 
 // implementar nos routes a criacao do array ??
@@ -10,16 +11,16 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 // POST (CREATE) ROUTES
 
-
 $app->post('/investidor/{id}/investimento', function (Request $request, Response $response, array $args) {
     $id = $args['id'];
     
     $this->logger->addInfo("Investidor " . $id . " Investimento Post");
 
-    $dbo = new Investidor($this->db);
-    $investimento = $dbo->createInvestimento($id);
+    $service = new InvestidorService($this->db);
+    $investimento = $service->createInvestimento($id);
 
     // TODO
+    
 
     $jsonResponse = $response->withJSON($investimento);
     return $jsonResponse
@@ -28,33 +29,20 @@ $app->post('/investidor/{id}/investimento', function (Request $request, Response
 });
 
 $app->post('/investidor', function (Request $request, Response $response, array $args) {
-
     $uid = $request->getHeader('user-id')[0];
-    // var_export($uid);
-    
-    $request_data = $request->getParsedBody();
-    // $request_data = $request->getBody()->getContents();
-    // var_export($request_data);
-    // $r = json_decode($request_data);
-    // var_export($r);
+    $requestData = $request->getParsedBody();
 
-    // $investidor_data = [];
-    // $investidor_data['title'] = filter_var($request_data['title'], FILTER_SANITIZE_STRING);
-    // $investidor_data['description'] = filter_var($request_data['description'], FILTER_SANITIZE_STRING);
-
-
-    $this->logger->addInfo("Investidor " . $uid . " Post");
-
-    $dbo = new Investidor($this->db);
-    $investidor = $dbo->createInvestidor($uid,$request_data);
-
-    // TODO
-    // $data = array(
-    //     "data" => $investimento
-    // );
-
-    // $jsonResponse = $response->withJSON($data);
-    return $response //$jsonResponse
+    $service = new InvestidorService($this->db);
+    $investidor = $service->createInvestidor($uid,$requestData);
+    if ($investidor == null) {
+        $this->logger->addInfo("ERRO: Cadastro do Investidor ".$uid);
+        $jsonResponse = $response->withStatus(401);
+    } else {
+        $this->logger->addInfo("Sucesso: Cadastro Investidor ".$uid." - ". $investidor['id']);
+        $responseData = array( "data" => $investidor );
+        $jsonResponse = $response->withJSON($responseData);
+    }
+    return $jsonResponse
         ->withHeader('Content-Type', 'application/vnd.api+json')
         ->withHeader('Access-Control-Allow-Origin', '*');
 });
@@ -76,8 +64,8 @@ $app->get('/investidor/{id}/notificacoes', function (Request $request, Response 
     $id = $args['id'];
     $this->logger->addInfo("Investidor " . $id . " Request");
 
-    $dbo = new Investidor($this->db);
-    $notificacoes = $dbo->getNotificacoes($id);
+    $service = new InvestidorService($this->db);
+    $notificacoes = $service->getNotificacoes($id);
 
     // TODO
 
@@ -94,8 +82,8 @@ $app->get('/investidor/{id}/investimento', function (Request $request, Response 
     $id = $args['id'];
     $this->logger->addInfo("Investidor " . $id . " Request");
 
-    $dbo = new Investidor($this->db);
-    $investimentos = $dbo->getInvestimentos($id);
+    $service = new InvestidorService($this->db);
+    $investimentos = $service->getInvestimentos($id);
 
     // TODO
 
@@ -110,8 +98,8 @@ $app->get('/investidor/{id}/investimento/{invid}', function (Request $request, R
     $invid = $args['invid'];
     $this->logger->addInfo("Investidor " . $id . " Investiment " . $invid . " Request");
 
-    $dbo = new Investidor($this->db);
-    $investimentos = $dbo->getInvestimentoById($id,$invid);
+    $service = new InvestidorService($this->db);
+    $investimentos = $service->getInvestimentoById($id,$invid);
 
     // TODO
 
@@ -129,8 +117,8 @@ $app->get('/investidor/{id}/movimentacao/{periodo}', function (Request $request,
 
     $this->logger->addInfo("Investidor " . $id . " / Movimentacao " . $periodo . " Request");
 
-    $dbo = new Investidor($this->db);
-    $parcelas = $dbo->getMovimentacaoFiltro($id, $periodo);
+    $service = new InvestidorService($this->db);
+    $parcelas = $service->getMovimentacaoFiltro($id, $periodo);
 
     // TODO
 
@@ -145,8 +133,8 @@ $app->get('/investidor/{id}/movimentacao', function (Request $request, Response 
     $id = $args['id'];
     $this->logger->addInfo("Investidor " . $id . " / Parcelas Request");
 
-    $dbo = new Investidor($this->db);
-    $parcelas = $dbo->getMovimentacao($id);
+    $service = new InvestidorService($this->db);
+    $parcelas = $service->getMovimentacao($id);
 
     // TODO
 
@@ -160,11 +148,20 @@ $app->get('/investidor/{id}/movimentacao', function (Request $request, Response 
 
 $app->get('/investidor/{id}', function (Request $request, Response $response, array $args) {
     $id = $args['id'];
-    $this->logger->addInfo("Investidor " . $id . " Request");
-    $dbo = new Investidor($this->db);
-    $investidor = $dbo->getInvestidorById($id);
+    $uid = $request->getHeader('user-id')[0];
 
-    $jsonResponse = $response->withJSON($investidor);
+    $service = new InvestidorService($this->db);
+
+    if ($service->validarUser($uid,$id)) {
+        $investidor = $service->getInvestidorById($id);
+
+        $this->logger->addInfo("Sucesso: Read Investidor ".$uid." - ". $id);
+        $responseData = array( "data" => $investidor );
+        $jsonResponse = $response->withJSON($responseData);
+    } else {
+        $this->logger->addInfo("ERRO: Read Investidor ".$uid." - ".$id);
+        $jsonResponse = $response->withStatus(401);
+    }
     return $jsonResponse
         ->withHeader('Content-Type', 'application/vnd.api+json')
         ->withHeader('Access-Control-Allow-Origin', '*');  
@@ -172,8 +169,10 @@ $app->get('/investidor/{id}', function (Request $request, Response $response, ar
 
 $app->get('/investidor', function (Request $request, Response $response, array $args) {
     $this->logger->addInfo("Investidor Request");
-    $dbo = new Investidor($this->db);
-    $investidores = $dbo->getInvestidor();
+    $service = new InvestidorService($this->db);
+    $investidores = $service->getInvestidor();
+
+    // TODO
 
     $jsonResponse = $response->withJSON($investidores);
     return $jsonResponse
@@ -194,15 +193,21 @@ $app->get('/investidor', function (Request $request, Response $response, array $
 
 $app->put('/investidor/{id}', function (Request $request, Response $response, array $args) {
     $id = $args['id'];
-    
-    $this->logger->addInfo("Investidor " . $id . " Investimento Update");
+    $uid = $request->getHeader('user-id')[0];
+    $request_data = $request->getParsedBody();
 
-    $dbo = new Investidor($this->db);
-    $investimento = $dbo->updateInvestidor($id);
+    $service = new InvestidorService($this->db);
 
-    // TODO
+    if ($service->validarUser($uid,$id)) {
+        $investidor = $service->updateInvestidor($id,$request_data);
 
-    $jsonResponse = $response->withJSON($investimento);
+        $this->logger->addInfo("Sucesso: Update Investidor ".$uid." - ". $id);
+        $responseData = array( "data" => $investidor );
+        $jsonResponse = $response->withJSON($responseData);
+    } else {
+        $this->logger->addInfo("ERRO: Update Investidor ".$uid." - ".$id);
+        $jsonResponse = $response->withStatus(401);
+    }
     return $jsonResponse
         ->withHeader('Content-Type', 'application/vnd.api+json')
         ->withHeader('Access-Control-Allow-Origin', '*');
@@ -223,8 +228,8 @@ $app->delete('/investidor/{id}/investimento/{invid}', function (Request $request
     
     $this->logger->addInfo("Investidor " . $id . " Investimento " . $invid . " Delete");
 
-    $dbo = new Investidor($this->db);
-    $investimento = $dbo->deleteInvestimento($id);
+    $service = new InvestidorService($this->db);
+    $investimento = $service->deleteInvestimento($id);
 
     // TODO
 
@@ -237,16 +242,20 @@ $app->delete('/investidor/{id}/investimento/{invid}', function (Request $request
 
 $app->delete('/investidor/{id}', function (Request $request, Response $response, array $args) {
     $id = $args['id'];
-    $invid = $args['invid'];
+    $uid = $request->getHeader('user-id')[0];
     
-    $this->logger->addInfo("Investidor " . $id . " Delete");
+    $service = new InvestidorService($this->db);
 
-    $dbo = new Investidor($this->db);
-    $investidor = $dbo->deleteInvestidor($id);
+    if ($service->validarUser($uid,$id) && $service->validarInvestimentos($id)) {
+        $investidor = $service->deleteInvestidor($id);
 
-    // TODO
-
-    $jsonResponse = $response->withJSON($investidor);
+        $this->logger->addInfo("Sucesso: Deletar Investidor ".$uid." - ". $id);
+        $responseData = array( "data" => $investidor );
+        $jsonResponse = $response->withJSON($responseData);
+    } else {
+        $this->logger->addInfo("ERRO: Deletar Investidor ".$uid." - ".$id);
+        $jsonResponse = $response->withStatus(401);
+    }
     return $jsonResponse
         ->withHeader('Content-Type', 'application/vnd.api+json')
         ->withHeader('Access-Control-Allow-Origin', '*');
