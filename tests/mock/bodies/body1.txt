@@ -1,0 +1,55 @@
+{
+    "data": {
+        "type": "investidor ",
+        "attributes": {
+            "email": "investidor@upcash.com",
+            "nome": "Ilan",
+            "sobrenome": "Goldman",
+            "sexo": "M",
+            "estado_civil": "solteiro",
+            "nome_mae": "Rosely Erlach Goldman",
+            "nome_pai": "Bernardo Goldman Neto",
+            "tel1": "11972207712",
+            "tel2": "1138256290",
+            "naturalidade": "brasileiro",
+            "nacionalidade": "brasileiro",
+            "cpf": "41903974828",
+            "data_nascimento": "18/10/1994",
+            "rg": "370485889",
+            "orgao_emissor": "SSP",
+            "estado_emissor": "SP",
+            "data_emissao": "18/10/2016",
+            "renda_mensal": "234214",
+            "patrimonio": "500000",
+            "ppe": "false",
+            "doc_id": "/investidor/doc_id",
+            "doc_residencia": "/investidor/doc_residencia"
+        }
+    },
+    "include": [
+        {
+            "type": "endereco",
+            "attributes": {
+                "cep": "01230000",
+                "tipo": "rua",
+                "logradouro": "Albuquerque Lins",
+                "numero": "848",
+                "complemento": "111",
+                "bairro": "Santa Cecília",
+                "cidade": "São Paulo",
+                "estado": "São Paulo",
+                "pais": "Brasil"
+            }
+        },
+        {
+            "type": "conta_bancaria",
+            "attributes": {
+                "titular": "Ilan Goldman",
+                "banco": "041",
+                "tipo": "1",
+                "agencia": "0428",
+                "conta": "076145"
+            }
+        }
+    ]
+}

@@ -1,11 +1,13 @@
 <?php
 namespace DBO;
 
-class EmprestimoDBO extends DBO {
+class OportunidadeDBO extends DBO {
     private $criado;
     private $modificado;
 
     private $empresa;
+
+    private $nome; 
 
     private $avalista;
     private $valor; 
@@ -31,14 +33,7 @@ class EmprestimoDBO extends DBO {
     
     protected function addCol($info) {
         $this->empresa = $info['empresa'];
-
-        $this->titular = filter_var($info['titular'],FILTER_SANITIZE_STRING);
-        $this->banco = filter_var($info['banco'],FILTER_SANITIZE_NUMBER_INT);
-        $this->tipo = filter_var($info['tipo'],FILTER_SANITIZE_NUMBER_INT);
-        $this->agencia = filter_var($info['agencia'],FILTER_SANITIZE_NUMBER_INT);
-        $this->conta = filter_var($info['conta'],FILTER_SANITIZE_NUMBER_INT);
-
-        $this->empresa = filter_var($info['empresa'],FILTER_SANITIZE_NUMBER_INT);
+        $this->nome = $info['nome'];
 
         $this->avalista = filter_var($info['avalista'],FILTER_SANITIZE_STRING);
         $this->valor = filter_var($info['valor'],FILTER_SANITIZE_NUMBER_INT); 
@@ -55,7 +50,8 @@ class EmprestimoDBO extends DBO {
     protected function getCol() {
         return array(
             "empresa" => $this->empresa,
-
+            "nome" => $this->nome,
+            
             "avalista" => $this->avalista,
             "valor" => $this->valor, 
             "taxa" => $this->taxa,
@@ -72,6 +68,7 @@ class EmprestimoDBO extends DBO {
     protected function getSqlCol() {
         return array(
             "empresa" => $this->empresa,
+            "nome" => '"'.$this->nome.'"',
 
             "avalista" => '"'.$this->avalista.'"',
             "valor" => $this->valor, 
@@ -85,39 +82,6 @@ class EmprestimoDBO extends DBO {
             "prazo_medio_pagar" => $this->prazo_medio_pagar
         );
     }
-
-
-       public function getRelationships() {
-        $sql = "SELECT empresa".
-            " FROM ".$this->table_name.
-            " WHERE ".$this->table_name." = ".$this->id;
-        // var_export($sql);
-        $stmt = $this->db->query($sql);
-        if ($row = $stmt->fetch()) {
-            foreach ($row as $k => $v) {
-                // var_export($k."|".$v);                
-                $dbo = $this->controller->{$k}();
-                $response[$dbo->getType()] = array(
-                        "data" => array(
-                            "type" => $dbo->getType(),
-                            "id" => $v
-                    )
-                );
-            }
-        }
-
-        $fk = ["detalhe", "parcela"];
-        // $response = array();
-        foreach($fk as $v) {
-            $response[$v] = $this->getTablesFK($v);
-        }
-        
-        // var_export($response);
-        return $response;
-    }
-
-    
-
 
     // CREATE
 

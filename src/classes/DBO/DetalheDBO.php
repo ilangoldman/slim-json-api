@@ -8,7 +8,8 @@ class DetalheDBO extends DBO {
     private $emprestimo;
 
     private $tipo; 
-    private $descricao; 
+    private $info;    
+    private $descricao;
     private $valor;
     
     public function __construct($db) {
@@ -23,6 +24,7 @@ class DetalheDBO extends DBO {
 
         $this->tipo = filter_var($info['tipo'], FILTER_SANITIZE_NUMBER_INT);
         $this->descricao = filter_var($info['descricao'], FILTER_SANITIZE_STRING); 
+        $this->info = filter_var($info['info'], FILTER_SANITIZE_STRING);         
         $this->valor = filter_var($info['valor'], FILTER_SANITIZE_NUMBER_FLOAT);
     }
 
@@ -30,8 +32,9 @@ class DetalheDBO extends DBO {
         return array(
             "emprestimo" => $this->emprestimo,
 
-            "tipo" => $this->tipo, 
-            "descricao" => $this->descricao, 
+            "tipo" => $this->tipo,
+            "descricao" => $this->descricao,
+            "info" => $this->info,              
             "valor" => $this->valor
         );
     }
@@ -41,9 +44,17 @@ class DetalheDBO extends DBO {
             "emprestimo" => $this->emprestimo,
 
             "tipo" => $this->tipo, 
-            "descricao" => '"'.$this->descricao.'"', 
+            "descricao" => '"'.$this->descricao.'"',
+            "info" => '"'.$this->info.'"',              
             "valor" => $this->valor
         );
+    }
+
+    public function getAttributes() {
+        $cols = $this->read($this->id);
+        $this->setType($cols['tipo']);
+        unset($cols['tipo']);
+        return $cols;
     }
 
     // CREATE

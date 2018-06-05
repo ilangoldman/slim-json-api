@@ -68,6 +68,36 @@ class InvestimentoDBO extends DBO {
         );
     }
 
+    
+    public function getRelationships() {
+        $sql = "SELECT investidor".
+            " FROM ".$this->table_name.
+            " WHERE ".$this->table_name." = ".$this->id;
+        // var_export($sql);
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            foreach ($row as $k => $v) {
+                // var_export($k."|".$v);                
+                $dbo = $this->controller->{$k}();
+                $response[$dbo->getType()] = array(
+                        "data" => array(
+                            "type" => $dbo->getType(),
+                            "id" => $v
+                    )
+                );
+            }
+        }
+
+        $fk = ["emprestimo", "parcela"];
+        // $response = array();
+        foreach($fk as $v) {
+            $response[$v] = $this->getTablesFK($v);
+        }
+        
+        // var_export($response);
+        return $response;
+    }
+
     // CREATE
 
 

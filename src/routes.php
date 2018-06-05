@@ -2,76 +2,292 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+use \Service\DBOController as DBOController;
+use \Service\InvestidorService as InvestidorService;
 
-// TODO: Routing function
-// TODO: REST Classes that takes the db 
-
-// HINT: create a log for the server
-// $this->logger->addInfo('Log message'); 
-
-// get params
-// $params = $request->getQueryParams()
-
-// post body data
-// $data = $request->getParsedBody();
-// $ticket_data = [];
-// $ticket_data['title'] = filter_var($data['title'], FILTER_SANITIZE_STRING);
-// $ticket_data['description'] = filter_var($data['description'], FILTER_SANITIZE_STRING);
 
 // Add routing
 
-require __DIR__ . './routes/investidor.php';
-require __DIR__ . './routes/empresa.php';
-
-$app->get('/user/{id}', function (Request $request, Response $response, array $args) {
-    $id = $args['id'];
-
-    $this->logger->addInfo("get user ". $id);
-
-    $dbo = new Investidor($this->db);
-    $user = $dbo->getUser($id);
-
-    $data = array(
-        "data" => $user
-    );
-
-    $jsonResponse = $response->withJSON($data);
-    return $jsonResponse
-        ->withHeader('Content-Type', 'application/vnd.api+json')
-        ->withHeader('Access-Control-Allow-Origin', '*');  
-});
+// require __DIR__ . './routes/investidor.php';
+// require __DIR__ . './routes/empresa.php';
 
 
+// CREATE
 
-$app->get('/emprestimos', function (Request $request, Response $response, array $args) {
-    $this->logger->addInfo("Emprestimo Request");
+$app->post('/conquista/{id}', function (Request $request, Response $response, array $args) {
+    $id = $args['id'];    
 
-    $dbo = new Emprestimos($this->db);
-    $emprestimos = $dbo->getEmprestimos();
+    $uid = $request->getHeader('user-id')[0];
+    $userId = $request->getHeader('id')[0];
+    $userType = $request->getHeader('user-type')[0];
+    $requestData = $request->getParsedBody();
 
-    $jsonResponse = $response->withJSON($emprestimos);
-    return $jsonResponse
-        ->withHeader('Content-Type', 'application/vnd.api+json')
-        ->withHeader('Access-Control-Allow-Origin', '*');  
-});
-
-$app->get('/emprestimos/{id}', function (Request $request, Response $response, array $args) {
-    $id = $args['id'];
-
-    $this->logger->addInfo("Emprestimo " . $id . " Request");
-    $dbo = new Emprestimos($this->db);
-    $emprestimo = $dbo->getEmprestimoById($id);
-
-    $jsonResponse = $response->withJSON($emprestimo);
-    return $jsonResponse
-        ->withHeader('Content-Type', 'application/vnd.api+json')
-        ->withHeader('Access-Control-Allow-Origin', '*');  
-});
-
-
-// $app->get('/hello/{name}', function (Request $request, Response $response, array $args) {
-//     $name = $args['name'];
-//     $response->getBody()->write("Hello, $name");
+    $controller = new DBOController($this->db);
     
-//     return $response;
+    $dbo = $controller->{"investidor"}();       
+    $this->db->beginTransaction();
+    try {
+        $dbo->setId($userId);
+        $dbo->addConquista("conquista",$id);
+
+        $data = $controller->getJSONAPI($dbo,$userId);
+        
+        $responseData = array( "data" => $data );
+        $jsonResponse = $response->withJSON($responseData)->withStatus(201);
+        
+        $this->logger->addInfo("Sucesso: Cadastro Generico ".$uid." - ". $data['id']);
+
+        $this->db->commit();
+    } catch(PDOException $e) {
+        $this->logger->addInfo("ERRO: Cadastro Generico ".$uid.": ".$e->getMessage());
+        
+        $jsonResponse = $response->withStatus(400);
+        $this->db->rollBack();
+    }
+        
+    return $jsonResponse
+        ->withHeader('Content-Type', 'application/vnd.api+json')
+        ->withHeader('Access-Control-Allow-Origin', '*');
+});
+
+$app->post('/{type}', function (Request $request, Response $response, array $args) {
+    $type = $args['type'];
+
+    $uid = $request->getHeader('user-id')[0];
+    $userId = $request->getHeader('id')[0];
+    $userType = $request->getHeader('user-type')[0];
+    $requestData = $request->getParsedBody();
+
+    $controller = new DBOController($this->db);
+
+    if ($userId != null) {
+        if (!$controller->validarUser($uid,$userId,$userType))
+            return $response->withStatus(401);
+    } else {
+        $requestData['data']['attributes']['user'] = $uid;        
+    }
+    
+    $dbo = $controller->{$type}();       
+    $this->db->beginTransaction();
+    try {
+
+        if(isset($requestData['data']['relationships'])) {
+            foreach($requestData['data']['relationships'] as $r) {
+                $rType = $r['type'];
+                $relationshipDBO = $controller->$rType();
+                $relationshipId = $relationshipDBO->create($r['attributes']);
+                $requestData['data']['attributes'][$rType] = $relationshipId;
+            }
+        }
+
+        $id = $dbo->create($requestData['data']['attributes']);
+        
+        if(isset($requestData['include'])) {
+            foreach($requestData['include'] as $i) {
+                $includeDBO = $controller->{$i['type']}();
+                $i['attributes'][$type] = $id;
+                // var_export($i);
+                $includeId = $includeDBO->create($i['attributes']);
+            }
+        }
+        $data = $controller->getJSONAPI($dbo,$id);
+        
+        $responseData = array( "data" => $data );
+        $jsonResponse = $response->withJSON($responseData)->withStatus(201);
+        
+        $this->logger->addInfo("Sucesso: Cadastro Generico ".$uid." - ". $data['id']);
+
+        $this->db->commit();
+    } catch(PDOException $e) {
+        $this->logger->addInfo("ERRO: Cadastro Generico ".$uid.": ".$e->getMessage());
+        
+        $jsonResponse = $response->withStatus(400);
+        $this->db->rollBack();
+    }
+        
+    return $jsonResponse
+        ->withHeader('Content-Type', 'application/vnd.api+json')
+        ->withHeader('Access-Control-Allow-Origin', '*');
+});
+
+
+// READ
+
+
+
+// $app->get('/{type}', function (Request $request, Response $response, array $args) {
+//     $type = $args['type'];
+
+//     $uid = $request->getHeader('user-id')[0];
+//     $userId = $request->getHeader('id')[0];
+//     $userType = $request->getHeader('user-type')[0];
+
+//     $controller = new DBOController($this->db);
+
+//     if ($controller->validarUser($uid,$userId,$userType)) {
+
+//         $dbo = $controller->{$type}();
+//         $data = $controller->getJSONAPI($dbo,$id);
+
+//         $responseData = array( "data" => $data );
+//         if ($data['relationships'] != null) {
+//             $include = $controller->getIncludes($data['relationships']);
+//             $responseData["include"] = $include;
+//         }
+
+//         $jsonResponse = $response->withJSON($responseData);
+
+//         $this->logger->addInfo("Sucesso: Read generico ".$uid."|".$userId." - ". $id);
+//     } else {
+//         $jsonResponse = $response->withStatus(401);
+
+//         $this->logger->addInfo("ERRO: Read generico ".$uid."|".$userId." - ".$id);
+//     }
+
+//     return $jsonResponse
+//         ->withHeader('Content-Type', 'application/vnd.api+json')
+//         ->withHeader('Access-Control-Allow-Origin', '*');  
 // });
+
+$app->get('/{type}/{id}', function (Request $request, Response $response, array $args) {
+    $type = $args['type'];    
+    $id = $args['id'];
+
+    $uid = $request->getHeader('user-id')[0];
+    $userId = $request->getHeader('id')[0];
+    $userType = $request->getHeader('user-type')[0];
+
+    $controller = new DBOController($this->db);
+
+    if ($controller->validarUser($uid,$userId,$userType) && 
+        $controller->validarUserAccess($userId,$userType,$id,$type)) {
+
+        $dbo = $controller->{$type}();
+        $data = $controller->getJSONAPI($dbo,$id);
+
+        $responseData = array( "data" => $data );
+        if ($data['relationships'] != null) {
+            $include = $controller->getIncludes($data['relationships']);
+            $responseData["include"] = $include;
+        }
+
+        $jsonResponse = $response->withJSON($responseData);
+
+        $this->logger->addInfo("Sucesso: Read generico ".$uid."|".$userId." - ". $id);
+    } else {
+        $jsonResponse = $response->withStatus(401);
+
+        $this->logger->addInfo("ERRO: Read generico ".$uid."|".$userId." - ".$id);
+    }
+
+    return $jsonResponse
+        ->withHeader('Content-Type', 'application/vnd.api+json')
+        ->withHeader('Access-Control-Allow-Origin', '*');  
+});
+
+
+// UPDATE
+$app->put('/{type}/{id}', function (Request $request, Response $response, array $args) {
+    $type = $args['type'];
+    $id = $args['id'];
+
+    $uid = $request->getHeader('user-id')[0];
+    $userId = $request->getHeader('id')[0];
+    $userType = $request->getHeader('user-type')[0];
+    $requestData = $request->getParsedBody();
+
+    $controller = new DBOController($this->db);
+
+   if ($controller->validarUser($uid,$userId,$userType) &&
+        $controller->validarUserAccess($userId,$userType,$id,$type)) {
+
+        $dbo = $controller->{$type}();
+        $this->db->beginTransaction();        
+        try {
+            $dbo->setId($id);
+
+            if(isset($requestData['data']['relationships'])) {
+                foreach($requestData['data']['relationships'] as $r) {
+                    $rType = $r['type'];
+                    $rId = $r['id'];
+                    $relationshipDBO = $controller->$rType();
+                    $relationshipDBO->updateAll($rId,$r['attributes']);
+                }
+            }
+
+            $dbo->updateAll($id,$requestData['data']['attributes']);
+            
+            if(isset($requestData['include'])) {
+                foreach($requestData['include'] as $i) {
+                    $includeDBO = $controller->{$i['type']}();
+                    $includeId = $includeDBO->updateAll($i['id'],$i['attributes']);
+                }
+            }
+
+            $data = $controller->getJSONAPI($dbo,$id);
+            
+            $responseData = array( "data" => $data );
+            $jsonResponse = $response->withJSON($responseData);
+            
+            $this->logger->addInfo("Sucesso: Update generico ".$uid."|".$userId." - ". $id);
+
+            $this->db->commit();
+        } catch(PDOException $e) {
+            $this->logger->addInfo("ERRO: Update generico ".$uid."|".$userId." - ".$id.": ".$e->getMessage());
+            
+            $jsonResponse = $response->withStatus(400);
+            $this->db->rollBack();
+        }
+    } else {
+        $this->logger->addInfo("ERRO: Update generico ".$uid."|".$userId." - ".$id.": Acesso não autorizado");        
+        $jsonResponse = $response->withStatus(401);
+    }
+
+    return $jsonResponse
+        ->withHeader('Content-Type', 'application/vnd.api+json')
+        ->withHeader('Access-Control-Allow-Origin', '*');
+});
+
+
+// DELETE
+
+$app->delete('/{type}/{id}', function (Request $request, Response $response, array $args) {
+    $type = $args['type'];    
+    $id = $args['id'];
+
+    $uid = $request->getHeader('user-id')[0];
+    $userId = $request->getHeader('id')[0];
+    $userType = $request->getHeader('user-type')[0];
+
+    $controller = new DBOController($this->db);
+
+    if ($controller->validarUser($uid,$userId,$userType) &&
+        $controller->validarUserAccess($userId,$userType,$id,$type)) {
+
+        $dbo = $controller->{$type}();
+        $this->db->beginTransaction();        
+        try {
+            // $dbo->setId($id);
+            $dbo->delete($id);
+            
+            $this->logger->addInfo("Sucesso: Delete generico ".$uid."|".$userId." - ". $id);
+
+            $jsonResponse = $response->withStatus(204);
+            $this->db->commit();
+        } catch(PDOException $e) {
+            $this->logger->addInfo("ERRO: Delete generico ".$uid."|".$userId." - ".$id.": ".$e->getMessage());
+
+            $jsonResponse = $response->withStatus(400);
+            $this->db->rollBack();
+        }
+    } else {
+        $this->logger->addInfo("ERRO: Delete generico ".$uid."|".$userId." - ".$id.": Acesso não autorizado");        
+        $jsonResponse = $response->withStatus(401);
+    }
+
+    return $jsonResponse
+        ->withHeader('Content-Type', 'application/vnd.api+json')
+        ->withHeader('Access-Control-Allow-Origin', '*');
+});
+
+

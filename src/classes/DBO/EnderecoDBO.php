@@ -5,6 +5,9 @@ class EnderecoDBO extends DBO {
     private $criado;
     private $modificado;
 
+    private $empresa;
+    private $investidor;
+
     private $cep; 
     private $tipo; 
     private $logradouro; 
@@ -18,11 +21,16 @@ class EnderecoDBO extends DBO {
     public function __construct($db) {
         parent::__construct($db);
         $this->setTableName("endereco");
+        $this->setType("endereco");
+        $this->addFK(["empresa","investidor"]);     
     }
     
     // helpers
 
     protected function addCol($info) {
+        $this->empresa = isset($info['empresa']) ? $info['empresa']:NULL;
+        $this->investidor = isset($info['investidor']) ? $info['investidor']:NULL;
+
         $this->cep = filter_var($info['cep'],FILTER_SANITIZE_NUMBER_INT);
         $this->tipo = filter_var($info['tipo'],FILTER_SANITIZE_STRING);
         $this->logradouro = filter_var($info['logradouro'],FILTER_SANITIZE_STRING);
@@ -36,6 +44,9 @@ class EnderecoDBO extends DBO {
 
     protected function getCol() {
         return array(
+            "empresa" => $this->empresa,
+            "investidor" => $this->investidor,
+
             "cep" => $this->cep,
             "tipo" => $this->tipo,
             "logradouro" => $this->logradouro, 
@@ -50,6 +61,9 @@ class EnderecoDBO extends DBO {
 
     protected function getSqlCol() {
         return array(
+            "empresa" => ($this->empresa) ? $this->empresa:'NULL',
+            "investidor" => ($this->investidor) ? $this->investidor:'NULL',
+
             "cep" => $this->cep,
             "tipo" => '"'.$this->tipo.'"',
             "logradouro" => '"'.$this->logradouro.'"', 
@@ -60,6 +74,14 @@ class EnderecoDBO extends DBO {
             "estado" => '"'.$this->estado.'"',
             "pais" => '"'.$this->pais.'"'
         );
+    }
+
+    public function getAttributes() {
+        $cols = $this->read($this->id);
+        foreach ($cols as $k => $c) {
+            if ($c == NULL) unset($cols[$k]);
+        }
+        return $cols;
     }
 
     // CREATE

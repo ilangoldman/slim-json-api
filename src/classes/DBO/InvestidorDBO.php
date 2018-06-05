@@ -7,8 +7,8 @@ class InvestidorDBO extends DBO {
 
     private $user;
     private $pontuacao;
-    private $endereco;
-    private $conta_bancaria;
+    // private $endereco;
+    // private $conta_bancaria;
     
     private $pontos; 
     private $email; 
@@ -37,17 +37,18 @@ class InvestidorDBO extends DBO {
     public function __construct($db) {
         parent::__construct($db);
         $this->setTableName("investidor");
+        $this->setType("investidor");
     }
 
     // helpers
 
     protected function addCol($info) {
         $this->user = $info['user'];
-        $this->pontuacao = (array_key_exists('pontuacao', $info)) ?filter_var($info['pontuacao'],FILTER_SANITIZE_NUMBER_INT) : 0;
-        $this->endereco = $info['endereco'];
-        $this->conta_bancaria = $info['conta_bancaria'];
+        $this->pontuacao = (array_key_exists('pontuacao', $info)) ? filter_var($info['pontuacao'],FILTER_SANITIZE_NUMBER_INT) : 1;
+        // $this->endereco = $info['endereco'];
+        // $this->conta_bancaria = $info['conta_bancaria'];
 
-        $this->pontos = (array_key_exists('pontos', $info)) ? filter_var($info['pontos'],FILTER_SANITIZE_NUMBER_INT) : 0;
+        $this->pontos = (array_key_exists('pontos', $info)) ? filter_var($info['pontos'],FILTER_SANITIZE_NUMBER_INT) : 10;
         $this->email = filter_var($info['email'],FILTER_SANITIZE_EMAIL);
         $this->nome = filter_var($info['nome'],FILTER_SANITIZE_STRING);
         $this->sobrenome = filter_var($info['sobrenome'],FILTER_SANITIZE_STRING);
@@ -77,9 +78,9 @@ class InvestidorDBO extends DBO {
     protected function getCol() {
         return array(
             "user" => $this->user,
-            "pontuacao" => $this->pontuacao,
-            "endereco" => $this->endereco,
-            "conta_bancaria" => $this->conta_bancaria,     
+            // "pontuacao" => $this->pontuacao,
+            // "endereco" => $this->endereco,
+            // "conta_bancaria" => $this->conta_bancaria,     
             "pontos" => $this->pontos, 
             "email" => $this->email, 
             "nome" => $this->nome, 
@@ -110,8 +111,8 @@ class InvestidorDBO extends DBO {
         return array(
             "user" => '"'.$this->user.'"',
             "pontuacao" => $this->pontuacao,
-            "endereco" => $this->endereco,
-            "conta_bancaria" => $this->conta_bancaria,     
+            // "endereco" => $this->endereco,
+            // "conta_bancaria" => $this->conta_bancaria,     
             "pontos" => $this->pontos, 
             "email" => '"'.$this->email.'"', 
             "nome" => '"'.$this->nome.'"', 
@@ -138,8 +139,44 @@ class InvestidorDBO extends DBO {
         );
     }
 
-    // CREATE
 
+    public function getRelationships() {
+        $sql = "SELECT pontuacao".
+            " FROM ".$this->table_name.
+            " WHERE ".$this->table_name." = ".$this->id;
+        // var_export($sql);
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            foreach ($row as $k => $v) {
+                // var_export($k."|".$v);                
+                $dbo = $this->controller->{$k}();
+                $response[$dbo->getType()] = array(
+                        "data" => array(
+                            "type" => $dbo->getType(),
+                            "id" => $v
+                    )
+                );
+            }
+        }
+
+        $fk = ["endereco","conta_bancaria","amigo","notificacao","investimento"];
+        // $response = array();
+        foreach($fk as $v) {
+            $response[$v] = $this->getTablesFK($v);
+        }
+        
+        // var_export($response);
+        return $response;
+    }
+
+    // CREATE
+    public function addConquista($type,$id) {
+        $sql = "INSERT INTO ".$this->table_name."_".$type.
+               " (".$this->table_name.",".$type.")".
+               " VALUES (".$this->id.",".$id.");";
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
+    }
 
     // READ
     public function readFK($id) {

@@ -1,5 +1,7 @@
 <?php
-class Parcelas extends DBO {
+namespace DBO;
+
+class Parcela extends DBO {
     private $criado;
 
     private $emprestimo;
@@ -14,7 +16,7 @@ class Parcelas extends DBO {
     
     public function __construct($db) {
         parent::__construct($db);
-        $this->setTableName("parcelas");
+        $this->setTableName("parcela");
     }
 
     // helper

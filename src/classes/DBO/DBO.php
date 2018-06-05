@@ -1,24 +1,105 @@
 <?php
 namespace DBO;
 
+use \Service\DBOController as DBOController;
+
 abstract class DBO {
     protected $db;
+    protected $controller;
+    
     protected $table_name;
     protected $id;
+    protected $type;
+    protected $fk;    
 
     public function __construct($db) {
         $this->db = $db;
+        $this->controller = new DBOController($this->db);
     }
+
+    // API functions
+
+    protected function setType($type) {
+        $this->type = $type;
+    }
+
+    public function getType() {
+        return $this->type;
+    }
+
+    public function getAttributes() {
+        return $this->read($this->id);
+    }
+
+    public function getRelationships() {
+        return null;
+    }
+
+    protected function getTablesFK($fk) {
+        $sql = "SELECT ".$fk.
+            " FROM ".$fk.
+            " WHERE ".$this->table_name." = ".$this->id;
+        
+        // var_export($sql);
+        $stmt = $this->db->query($sql);
+        $data = array();
+        while ($row = $stmt->fetch()) {
+            $dbo = $this->controller->{$fk}();   
+            foreach ($row as $v) {
+                // var_export($v);              
+                $data[] = array(
+                    "type" => $dbo->getType(),
+                    "id" => $v
+                );
+            }
+
+            $response = array(
+                "data" => $data
+            );
+        }
+        return $response;
+    }
+
 
     // helper functions
 
     abstract protected function addCol($info);
     abstract protected function getCol();
-    abstract protected function getSqlCol();    
+    abstract protected function getSqlCol();
 
-    protected function getColKeys() {
+    protected function getSqlColKeys() {
         $arrayKeys = array_keys($this->getSqlCol());
         return implode(",",$arrayKeys);
+    }
+
+    protected function getColKeys() {
+        $arrayKeys = array_keys($this->getCol());
+        return implode(",",$arrayKeys);
+    }
+
+    protected function removeFK($cols) {
+        // var_export($cols);
+        // var_export($this->fk);
+        
+        // if (!isset($this->fk)) return $cols;
+        
+
+        foreach($this->fk as $fk) {
+            if (array_key_exists($fk,$cols)) unset($cols[$fk]);
+        }
+        return $cols;
+    }
+
+    protected function addFK($fkArray) {
+        $this->fk = $fkArray;
+    }
+
+    protected function getFK() {
+        return $this->fk;
+    }
+
+    public function setId($id) {
+        $this->addId($id);
     }
 
     protected function addId($id) {
@@ -28,6 +109,10 @@ abstract class DBO {
     protected function getId() {
         return $this->id;
     }
+
+    protected function getTableName() {
+        return $this->table_name;
+    } 
 
     protected function setTableName($tn) {
         $this->table_name = $tn;
@@ -48,6 +133,7 @@ abstract class DBO {
         return $newDate;
     }
 
+
     // CREATE
     // needs to be implented on child class
     public function create($info) {
@@ -55,7 +141,7 @@ abstract class DBO {
         
         $values = implode(",",$this->getSqlCol());
         $sql = "INSERT INTO ".$this->table_name.
-        " (".$this->getColKeys().")".
+        " (".$this->getSqlColKeys().")".
         " values (".$values.');';
         // var_export($sql);
         $stmt = $this->db->exec($sql);
@@ -69,7 +155,7 @@ abstract class DBO {
         $sql = "SELECT ".$this->getColKeys().
             " FROM ".$this->table_name.
             " WHERE ".$this->table_name." = ".$this->id;
-
+        // var_export($sql);
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
             $this->addCol($row);
@@ -93,11 +179,16 @@ abstract class DBO {
 
         $setArray = array();
         // $array = $this->getCol();
-        foreach($this->getSqlCol() as $k => $v) {
+        $updateCols = $this->removeFK($this->getSqlCol());
+        // var_export($updateCols);
+        foreach($updateCols as $k => $v) {
+            // var_export($k."=".$v);
+            // var_export(empty($v));
+            // var_export(str_replace('"','',$v) == '');
             if (str_replace('"','',$v) == '') continue;
             array_push($setArray, $k." = ".$v);
         }
-       
+        // var_export($sql);
         $set = implode(",",$setArray);
         return $this->update($id,$set);
     }

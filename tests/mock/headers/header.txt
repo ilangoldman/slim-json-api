@@ -1,0 +1,3 @@
+Access-Control-Allow-Origin: *
+Connection: close
+Content-Type: application/vnd.api+json
