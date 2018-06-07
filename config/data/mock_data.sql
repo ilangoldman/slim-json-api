@@ -52,13 +52,13 @@ INSERT INTO pontuacao(nivel,pontos,titulo,simbolo) values
     (50,13261,'Senior Colonel','android');
 
 
-INSERT INTO conquista(titulo,descricao,pontos) values
+INSERT INTO atividade(titulo,descricao,pontos) values
     ('R$1.000 investidos','++1000 reais', 10),
     ('10 empresas investidas','++10 empresas', 15),
     ('Amigo convidado','++1 amigo', 20);
 
 
-INSERT INTO beneficio(titulo,descricao,conquista) values
+INSERT INTO beneficio(titulo,descricao,pontuacao) values
     ('Vale chocolate','1 chocolate pra vc!', 1),
     ('Vale abraço','1 abraco pra vc!', 2),
     ('Camisa','Parabéns vc ganhou uma camisa!!', 3);

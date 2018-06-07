@@ -61,8 +61,12 @@ class ContaBancariaDBO extends DBO {
 
     public function getAttributes() {
         $cols = $this->read($this->id);
-        foreach ($cols as $k => $c) {
-            if ($c == NULL) unset($cols[$k]);
+        // foreach ($cols as $k => $c) {
+        //     if ($c == NULL) unset($cols[$k]);
+        // }
+        $pkArray = ["investidor","empresa"];
+        foreach ($pkArray as $pk) {
+            unset($cols[$pk]);
         }
         return $cols;
     }

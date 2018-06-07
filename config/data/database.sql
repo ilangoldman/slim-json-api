@@ -209,38 +209,24 @@ CREATE INDEX `fk_amigo_empresa1_idx` ON `upcash`.`amigo` (`empresa` ASC);
 
 
 -- -----------------------------------------------------
--- Table `upcash`.`conquista`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `upcash`.`conquista` ;
-
-CREATE TABLE IF NOT EXISTS `upcash`.`conquista` (
-  `conquista` INT NOT NULL AUTO_INCREMENT,
-  `titulo` VARCHAR(45) NULL,
-  `descricao` VARCHAR(45) NULL,
-  `pontos` INT NULL,
-  PRIMARY KEY (`conquista`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
 -- Table `upcash`.`beneficio`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `upcash`.`beneficio` ;
 
 CREATE TABLE IF NOT EXISTS `upcash`.`beneficio` (
   `beneficio` INT NOT NULL AUTO_INCREMENT,
-  `conquista` INT NOT NULL,
+  `pontuacao` INT NOT NULL,
   `titulo` VARCHAR(45) NULL,
   `descricao` VARCHAR(250) NULL,
-  PRIMARY KEY (`beneficio`, `conquista`),
+  PRIMARY KEY (`beneficio`, `pontuacao`),
   CONSTRAINT `fk_BENEFICIOS_CONQUISTAS1`
-    FOREIGN KEY (`conquista`)
-    REFERENCES `upcash`.`conquista` (`conquista`)
+    FOREIGN KEY (`pontuacao`)
+    REFERENCES `upcash`.`pontuacao` (`pontuacao`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE INDEX `fk_BENEFICIOS_CONQUISTAS1_idx` ON `upcash`.`beneficio` (`conquista` ASC);
+CREATE INDEX `fk_BENEFICIOS_CONQUISTAS1_idx` ON `upcash`.`beneficio` (`pontuacao` ASC);
 
 
 -- -----------------------------------------------------
@@ -302,28 +288,42 @@ CREATE INDEX `fk_parcelas_parcelas1_idx` ON `upcash`.`parcela` (`parcela_empresa
 
 
 -- -----------------------------------------------------
--- Table `upcash`.`investidor_conquista`
+-- Table `upcash`.`atividade`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `upcash`.`investidor_conquista` ;
+DROP TABLE IF EXISTS `upcash`.`atividade` ;
 
-CREATE TABLE IF NOT EXISTS `upcash`.`investidor_conquista` (
+CREATE TABLE IF NOT EXISTS `upcash`.`atividade` (
+  `atividade` INT NOT NULL AUTO_INCREMENT,
+  `titulo` VARCHAR(45) NULL,
+  `descricao` VARCHAR(45) NULL,
+  `pontos` INT NULL,
+  PRIMARY KEY (`atividade`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `upcash`.`conquista`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `upcash`.`conquista` ;
+
+CREATE TABLE IF NOT EXISTS `upcash`.`conquista` (
   `investidor` INT UNSIGNED NOT NULL,
-  `conquista` INT NOT NULL,
+  `atividade` INT NOT NULL,
   `criado` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`investidor`, `conquista`),
+  PRIMARY KEY (`investidor`, `atividade`),
   CONSTRAINT `fk_CONQUISTAS_INVESTIDOR_INVESTIDOR1`
     FOREIGN KEY (`investidor`)
     REFERENCES `upcash`.`investidor` (`investidor`)
     ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_CONQUISTAS_INVESTIDOR_CONQUISTAS1`
-    FOREIGN KEY (`conquista`)
-    REFERENCES `upcash`.`conquista` (`conquista`)
+    FOREIGN KEY (`atividade`)
+    REFERENCES `upcash`.`atividade` (`atividade`)
     ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE INDEX `fk_CONQUISTAS_INVESTIDOR_CONQUISTAS1_idx` ON `upcash`.`investidor_conquista` (`conquista` ASC);
+CREATE INDEX `fk_CONQUISTAS_INVESTIDOR_CONQUISTAS1_idx` ON `upcash`.`conquista` (`atividade` ASC);
 
 
 -- -----------------------------------------------------
@@ -424,18 +424,17 @@ CREATE INDEX `fk_detalhe_emprestimos1_idx` ON `upcash`.`detalhe` (`emprestimo` A
 
 
 -- -----------------------------------------------------
--- Table `upcash`.`user_notificacao`
+-- Table `upcash`.`notificacao`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `upcash`.`user_notificacao` ;
+DROP TABLE IF EXISTS `upcash`.`notificacao` ;
 
-CREATE TABLE IF NOT EXISTS `upcash`.`user_notificacao` (
+CREATE TABLE IF NOT EXISTS `upcash`.`notificacao` (
   `notificacao` INT NOT NULL,
-  `mensagem` INT NOT NULL,
   `investidor` INT UNSIGNED NULL,
   `empresa` INT NULL,
-  PRIMARY KEY (`notificacao`, `mensagem`),
+  PRIMARY KEY (`notificacao`),
   CONSTRAINT `fk_user_notificacao_notificacao1`
-    FOREIGN KEY (`mensagem`)
+    FOREIGN KEY (`notificacao`)
     REFERENCES `upcash`.`mensagem` (`mensagem`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
@@ -451,11 +450,11 @@ CREATE TABLE IF NOT EXISTS `upcash`.`user_notificacao` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE INDEX `fk_user_notificacao_notificacao1_idx` ON `upcash`.`user_notificacao` (`mensagem` ASC);
+CREATE INDEX `fk_user_notificacao_notificacao1_idx` ON `upcash`.`notificacao` (`notificacao` ASC);
 
-CREATE INDEX `fk_user_notificacao_investidor1_idx` ON `upcash`.`user_notificacao` (`investidor` ASC);
+CREATE INDEX `fk_user_notificacao_investidor1_idx` ON `upcash`.`notificacao` (`investidor` ASC);
 
-CREATE INDEX `fk_user_notificacao_empresa1_idx` ON `upcash`.`user_notificacao` (`empresa` ASC);
+CREATE INDEX `fk_user_notificacao_empresa1_idx` ON `upcash`.`notificacao` (`empresa` ASC);
 
 USE `upcash` ;
 
@@ -468,11 +467,6 @@ CREATE TABLE IF NOT EXISTS `upcash`.`oportunidade` (`nome` INT, `emprestimo` INT
 -- Placeholder table for view `upcash`.`carteira`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `upcash`.`carteira` (`principal` INT, `rendimentos` INT, `total` INT, `num_investimentos` INT);
-
--- -----------------------------------------------------
--- Placeholder table for view `upcash`.`notificacao`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `upcash`.`notificacao` (`notificacao` INT, `investidor` INT, `mensagem` INT, `criado` INT, `titulo` INT, `descricao` INT, `data` INT, `status` INT, `categoria` INT);
 
 -- -----------------------------------------------------
 -- View `upcash`.`oportunidade`
@@ -496,17 +490,6 @@ SELECT SUM(principal) as principal, sum(rendimentos) as rendimentos, sum(princip
 FROM parcela
 WHERE emprestimo is null
 GROUP BY investimento;
-
--- -----------------------------------------------------
--- View `upcash`.`notificacao`
--- -----------------------------------------------------
-DROP VIEW IF EXISTS `upcash`.`notificacao` ;
-DROP TABLE IF EXISTS `upcash`.`notificacao`;
-USE `upcash`;
-CREATE  OR REPLACE VIEW `notificacao` AS
-SELECT un.notificacao as notificacao, un.investidor as investidor, m.*
-FROM user_notificacao as un
-LEFT JOIN mensagem as m using(mensagem);
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;

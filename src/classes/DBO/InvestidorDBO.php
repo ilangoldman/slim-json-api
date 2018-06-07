@@ -162,7 +162,9 @@ class InvestidorDBO extends DBO {
         $fk = ["endereco","conta_bancaria","amigo","notificacao","investimento"];
         // $response = array();
         foreach($fk as $v) {
-            $response[$v] = $this->getTablesFK($v);
+            $tblFK = $this->getTablesFK($v);
+            if ($tblFK == NULL) continue;
+            $response[$v] = $tblFK;
         }
         
         // var_export($response);

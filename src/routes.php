@@ -14,41 +14,41 @@ use \Service\InvestidorService as InvestidorService;
 
 // CREATE
 
-$app->post('/conquista/{id}', function (Request $request, Response $response, array $args) {
-    $id = $args['id'];    
+// $app->post('/conquista/{id}', function (Request $request, Response $response, array $args) {
+//     $id = $args['id'];    
 
-    $uid = $request->getHeader('user-id')[0];
-    $userId = $request->getHeader('id')[0];
-    $userType = $request->getHeader('user-type')[0];
-    $requestData = $request->getParsedBody();
+//     $uid = $request->getHeader('user-id')[0];
+//     $userId = $request->getHeader('id')[0];
+//     $userType = $request->getHeader('user-type')[0];
+//     $requestData = $request->getParsedBody();
 
-    $controller = new DBOController($this->db);
+//     $controller = new DBOController($this->db);
     
-    $dbo = $controller->{"investidor"}();       
-    $this->db->beginTransaction();
-    try {
-        $dbo->setId($userId);
-        $dbo->addConquista("conquista",$id);
+//     $dbo = $controller->{"investidor"}();       
+//     $this->db->beginTransaction();
+//     try {
+//         $dbo->setId($userId);
+//         $dbo->addConquista("conquista",$id);
 
-        $data = $controller->getJSONAPI($dbo,$userId);
+//         $data = $controller->getJSONAPI($dbo,$userId);
         
-        $responseData = array( "data" => $data );
-        $jsonResponse = $response->withJSON($responseData)->withStatus(201);
+//         $responseData = array( "data" => $data );
+//         $jsonResponse = $response->withJSON($responseData)->withStatus(201);
         
-        $this->logger->addInfo("Sucesso: Cadastro Generico ".$uid." - ". $data['id']);
+//         $this->logger->addInfo("Sucesso: Cadastro Generico ".$uid." - ". $data['id']);
 
-        $this->db->commit();
-    } catch(PDOException $e) {
-        $this->logger->addInfo("ERRO: Cadastro Generico ".$uid.": ".$e->getMessage());
+//         $this->db->commit();
+//     } catch(PDOException $e) {
+//         $this->logger->addInfo("ERRO: Cadastro Generico ".$uid.": ".$e->getMessage());
         
-        $jsonResponse = $response->withStatus(400);
-        $this->db->rollBack();
-    }
+//         $jsonResponse = $response->withStatus(400);
+//         $this->db->rollBack();
+//     }
         
-    return $jsonResponse
-        ->withHeader('Content-Type', 'application/vnd.api+json')
-        ->withHeader('Access-Control-Allow-Origin', '*');
-});
+//     return $jsonResponse
+//         ->withHeader('Content-Type', 'application/vnd.api+json')
+//         ->withHeader('Access-Control-Allow-Origin', '*');
+// });
 
 $app->post('/{type}', function (Request $request, Response $response, array $args) {
     $type = $args['type'];
@@ -90,10 +90,12 @@ $app->post('/{type}', function (Request $request, Response $response, array $arg
                 $includeId = $includeDBO->create($i['attributes']);
             }
         }
-        $data = $controller->getJSONAPI($dbo,$id);
+        // $data = $controller->getJSONAPI($dbo,$id);
         
-        $responseData = array( "data" => $data );
-        $jsonResponse = $response->withJSON($responseData)->withStatus(201);
+        // $responseData = array( "data" => $data );
+        // withJSON($responseData)
+        $url = $request->getUri()->getPath() . "/" . $id;
+        $jsonResponse = $response->withStatus(201)->withHeader('location', $url);
         
         $this->logger->addInfo("Sucesso: Cadastro Generico ".$uid." - ". $data['id']);
 
@@ -224,10 +226,11 @@ $app->put('/{type}/{id}', function (Request $request, Response $response, array 
                 }
             }
 
-            $data = $controller->getJSONAPI($dbo,$id);
+            //$data = $controller->getJSONAPI($dbo,$id);
             
-            $responseData = array( "data" => $data );
-            $jsonResponse = $response->withJSON($responseData);
+            //$responseData = array( "data" => $data );
+            //$jsonResponse = $response->withJSON($responseData);
+            $jsonResponse = $response->withStatus(202);
             
             $this->logger->addInfo("Sucesso: Update generico ".$uid."|".$userId." - ". $id);
 
