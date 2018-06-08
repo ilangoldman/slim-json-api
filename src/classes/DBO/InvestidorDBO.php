@@ -38,6 +38,7 @@ class InvestidorDBO extends DBO {
         parent::__construct($db);
         $this->setTableName("investidor");
         $this->setType("investidor");
+        $this->addFK(["pontuacao"]);   
     }
 
     // helpers

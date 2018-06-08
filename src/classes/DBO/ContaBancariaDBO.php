@@ -17,7 +17,8 @@ class ContaBancariaDBO extends DBO {
     public function __construct($db) {
         parent::__construct($db);
         $this->setTableName("conta_bancaria");
-        $this->setType("conta_bancaria");        
+        $this->setType("conta_bancaria");
+        $this->addFK(["empresa","investidor"]);    
     }
 
     // helper

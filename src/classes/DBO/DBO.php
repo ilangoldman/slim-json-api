@@ -44,9 +44,9 @@ abstract class DBO {
         $stmt = $this->db->query($sql);
         $data = array();
         while ($row = $stmt->fetch()) {
-            $dbo = $this->controller->{$fk}();   
+            $dbo = $this->controller->{$fk}();
             foreach ($row as $v) {
-                // var_export($v);              
+                // var_export($row);              
                 $data[] = array(
                     "type" => $dbo->getType(),
                     "id" => $v
@@ -145,7 +145,7 @@ abstract class DBO {
         $sql = "INSERT INTO ".$this->table_name.
         " (".$this->getSqlColKeys().")".
         " values (".$values.');';
-        // var_export($sql);
+        var_export($sql);
         $stmt = $this->db->exec($sql);
         return $this->readId();
     }

@@ -22,10 +22,12 @@ class DetalheDBO extends DBO {
     protected function addCol($info) {
         $this->emprestimo = $info['emprestimo'];
 
-        $this->tipo = filter_var($info['tipo'], FILTER_SANITIZE_NUMBER_INT);
+        $this->tipo = filter_var($info['tipo'], FILTER_SANITIZE_STRING);
         $this->descricao = filter_var($info['descricao'], FILTER_SANITIZE_STRING); 
         $this->info = filter_var($info['info'], FILTER_SANITIZE_STRING);         
-        $this->valor = filter_var($info['valor'], FILTER_SANITIZE_NUMBER_FLOAT);
+        $this->valor = (isset($info['valor'])) ? 
+            filter_var($info['valor'], FILTER_SANITIZE_NUMBER_FLOAT) :
+            "null";
     }
 
     protected function getCol() {
@@ -43,19 +45,19 @@ class DetalheDBO extends DBO {
         return array(
             "emprestimo" => $this->emprestimo,
 
-            "tipo" => $this->tipo, 
+            "tipo" => '"'.$this->tipo.'"', 
             "descricao" => '"'.$this->descricao.'"',
             "info" => '"'.$this->info.'"',              
             "valor" => $this->valor
         );
     }
 
-    public function getAttributes() {
-        $cols = $this->read($this->id);
-        $this->setType($cols['tipo']);
-        unset($cols['tipo']);
-        return $cols;
-    }
+    // public function getAttributes() {
+    //     $cols = $this->read($this->id);
+    //     $this->setType($cols['tipo']);
+    //     unset($cols['tipo']);
+    //     return $cols;
+    // }
 
     // CREATE
 

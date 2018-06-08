@@ -40,7 +40,7 @@ class DBOController {
         } else {
             $user = null;
         }
-        
+
         return ($user == $userId);
     }
     
@@ -70,9 +70,10 @@ class DBOController {
         foreach($relationships as $k => $r) {        
             $data = $r['data'];
             $dbo = $this->{$k}();
-            
+            // var_export($data);
             if (isset($data[0])) {
                 foreach($data as $d) {
+                    // var_export($d);
                     array_push($include,$this->getJSONAPI($dbo,$d['id']));  
                 }
             } else {
@@ -92,6 +93,10 @@ class DBOController {
 
     public function emprestimo() {
         return new Emprestimo($this->db);        
+    }
+
+    public function detalhe() {
+        return new Detalhe($this->db);        
     }
 
     public function parcela() {

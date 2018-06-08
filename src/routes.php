@@ -64,7 +64,7 @@ $app->post('/{type}', function (Request $request, Response $response, array $arg
         if (!$controller->validarUser($uid,$userId,$userType))
             return $response->withStatus(401);
     } else {
-        $requestData['data']['attributes']['user'] = $uid;        
+        $requestData['data']['attributes']['user'] = $uid;     
     }
     
     $dbo = $controller->{$type}();       
@@ -80,6 +80,7 @@ $app->post('/{type}', function (Request $request, Response $response, array $arg
             }
         }
 
+        $requestData['data']['attributes'][$userType] = $userId;
         $id = $dbo->create($requestData['data']['attributes']);
         
         if(isset($requestData['include'])) {
@@ -169,6 +170,7 @@ $app->get('/{type}/{id}', function (Request $request, Response $response, array 
 
         $responseData = array( "data" => $data );
         if ($data['relationships'] != null) {
+            var_export($data['relationships']);
             $include = $controller->getIncludes($data['relationships']);
             $responseData["include"] = $include;
         }
@@ -220,9 +222,17 @@ $app->put('/{type}/{id}', function (Request $request, Response $response, array 
             $dbo->updateAll($id,$requestData['data']['attributes']);
             
             if(isset($requestData['include'])) {
+                $relationships = $dbo->getRelationships();
                 foreach($requestData['include'] as $i) {
                     $includeDBO = $controller->{$i['type']}();
-                    $includeId = $includeDBO->updateAll($i['id'],$i['attributes']);
+                    if (isset($i['id'])) {
+                        $includeID = $i['id'];
+                    } else {
+                        $iData = $relationships[$i['type']]['data'];
+                        if (isset($iData[0])) $iData = $iData[0];
+                        $includeID = $iData['id'];
+                    }
+                    $includeDBO->updateAll($includeID,$i['attributes']);
                 }
             }
 
