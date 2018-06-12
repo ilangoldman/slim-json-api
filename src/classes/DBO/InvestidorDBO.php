@@ -160,7 +160,7 @@ class InvestidorDBO extends DBO {
             }
         }
 
-        $fk = ["endereco","conta_bancaria","amigo","notificacao","investimento"];
+        $fk = ["endereco","conta_bancaria","amigo","notificacao"];
         // $response = array();
         foreach($fk as $v) {
             $tblFK = $this->getTablesFK($v);

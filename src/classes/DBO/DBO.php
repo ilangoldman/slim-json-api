@@ -66,6 +66,10 @@ abstract class DBO {
     // helper functions
 
     abstract protected function addCol($info);
+    protected function readCol($info) {
+        $this->addCol($info);
+    }
+
     abstract protected function getCol();
     abstract protected function getSqlCol();
 
@@ -145,7 +149,7 @@ abstract class DBO {
         $sql = "INSERT INTO ".$this->table_name.
         " (".$this->getSqlColKeys().")".
         " values (".$values.');';
-        var_export($sql);
+        // var_export($sql);
         $stmt = $this->db->exec($sql);
         return $this->readId();
     }
@@ -160,7 +164,8 @@ abstract class DBO {
         // var_export($sql);
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
-            $this->addCol($row);
+            $this->readCol($row);
+            // $this->addCol($row);
         }
         
         return $this->getCol();

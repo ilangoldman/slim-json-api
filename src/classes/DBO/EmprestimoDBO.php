@@ -38,23 +38,24 @@ class EmprestimoDBO extends DBO {
         $this->empresa = $info['empresa'];
         
         $this->avalista = filter_var($info['avalista'],FILTER_SANITIZE_STRING);
-        $this->valor = filter_var($info['valor'],FILTER_SANITIZE_NUMBER_INT); 
+        $this->valor = filter_var($info['valor'],FILTER_SANITIZE_NUMBER_INT);
         $this->prazo = filter_var($info['prazo'],FILTER_SANITIZE_NUMBER_INT); 
         $this->motivo = filter_var($info['motivo'],FILTER_SANITIZE_STRING);
         $this->faturamento = filter_var($info['faturamento'],FILTER_SANITIZE_NUMBER_INT);
 
+
         $this->rating = (isset($info['rating'])) ?
-            filter_var($info['rating'],FILTER_SANITIZE_NUMBER_FLOAT) :
-            $this->price->calcularRating();
+            $info['rating'] :
+            $this->price->calcularRating($info);
         $this->taxa = (isset($info['taxa'])) ?
-            filter_var($info['taxa'],FILTER_SANITIZE_NUMBER_FLOAT) :
-            $this->price->calcularTaxa($this->rating);
+            $info['taxa'] :
+            $this->price->calcularTaxa($this->rating) * 1.23;
         $this->valor_parcela = (isset($info['valor_parcela'])) ?
-            filter_var($info['valor_parcela'],FILTER_SANITIZE_NUMBER_FLOAT) :
+            $info['valor_parcela'] :
             $this->price->calcularParcela($this->valor,$this->prazo,$this->taxa);
         
         $this->status = (isset($info['status'])) ?
-            filter_var($info['status'],FILTER_SANITIZE_NUMBER_FLOAT) : -1;
+            $info['status'] : -1;
     }
 
     protected function getCol() {
@@ -89,12 +90,20 @@ class EmprestimoDBO extends DBO {
         );
     }
 
+    public function getAttributes() {
+        $attrib = $this->read($this->id);
+        unset($attrib['empresa']);        
+        return $attrib;
+    }
 
-       public function getRelationships() {
+    public function getRelationships() {
+        $response = array();
+        $response = $this->getDetalhes($response);
+
         $sql = "SELECT empresa".
             " FROM ".$this->table_name.
             " WHERE ".$this->table_name." = ".$this->id;
-        var_export($sql);
+        // var_export($sql);
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
             foreach ($row as $k => $v) {
@@ -108,14 +117,12 @@ class EmprestimoDBO extends DBO {
                 );
             }
         }
-
-        $response = $this->getDetalhes($response);
-
-        $fk = ["parcela"];
-        // $response = array();
-        foreach($fk as $v) {
-            $response[$v] = $this->getTablesFK($v);
-        }
+        
+        // $fk = ["parcela"];
+        // // $response = array();
+        // foreach($fk as $v) {
+        //     $response[$v] = $this->getTablesFK($v);
+        // }
         
         // var_export($response);
         return $response;
@@ -125,21 +132,24 @@ class EmprestimoDBO extends DBO {
         $sql = "SELECT detalhe, tipo".
             " FROM detalhe".
             " WHERE ".$this->table_name." = ".$this->id.
-            " ORDER BY tipo, valor, descricao";
+            " ORDER BY tipo, valor DESC, descricao";
         
-        var_export($sql);
+        // var_export($sql);
         $stmt = $this->db->query($sql);
-        $data = array();
         $lastTipo = '';
+        $dbo = $this->controller->detalhe();
+        // var_export($dbo);
         while ($row = $stmt->fetch()) {
-            $dbo = $this->controller->detalhe();
             extract($row);
 
             if ($lastTipo != $tipo) {
-                $response[$lastTipo] = array(
-                    "data" => $data
-                );
+                if($lastTipo != '') {
+                    $response[$lastTipo] = array(
+                        "data" => $data
+                    );
+                }
                 $lastTipo = $tipo;
+                $data = array();
             }
 
             $data[] = array(
@@ -156,13 +166,94 @@ class EmprestimoDBO extends DBO {
         return $response;
     }
 
+    private function empresaFinanciada() {
+        $sql = "UPDATE ".$this->table_name.
+            " SET valor = saldo_devedor".
+            " WHERE ".$this->table_name." = ".$this->id.
+            " AND valor = 0";
+        $stmt = $this->db->exec($sql);        
+    }
 
-    // CREATE
+    private function empresaNaoFinanciada() {
+        $sql = "UPDATE ".$this->table_name.
+            " SET status = 0, valor = 0".
+            " WHERE ".$this->table_name." = ".$this->id;
+        var_export($sql);
+        $stmt = $this->db->exec($sql);        
+    }
 
+    public function aprovarEmprestimo() {
+        $sql = "UPDATE ".$this->table_name.
+               " SET status = 0, saldo_devedor = valor".
+               " WHERE ".$this->table_name." = ".$this->id;
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
+    }
 
-    // READ
+    public function addInvestimento($investido) {
+        $sql = "UPDATE ".$this->table_name.
+               " SET valor = IF(valor - ".$investido." = 0, saldo_devedor,valor - ".$investido.")".
+               ", status = IF(valor = saldo_devedor, 1,0)".
+               " WHERE ".$this->table_name." = ".$this->id.
+               " AND status = 0 AND valor != 0";
+        var_export($sql);
+        $stmt = $this->db->exec($sql);
+        // if ($stmt == 0) $this->empresaFinanciada();
+        return ($stmt > 0);
+    }
 
+    public function removeInvestimento($investido) {
+        $sql = "UPDATE ".$this->table_name.
+               " SET valor = valor + ".$investido.
+               " WHERE ".$this->table_name." = ".$this->id.
+               " AND status = 0";
+        $stmt = $this->db->exec($sql);
+        if ($stmt == 0) {
+            $this->empresaNaoFinanciada();
+            $stmt = $this->db->exec($sql);
+            $dbo = $this->controller->investimento();
+            $dbo->getListaDeEspera($this->id, $investido);
+        }
+        return ($stmt > 0);
+    }
 
-    // UPDATE
+    public function getInfoEmprestimoInvestir($id) {
+        $sql = "SELECT valor, prazo, rating FROM ".$this->table_name.
+               " WHERE ".$this->table_name." = ".$id;
+
+        $info = null;
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            $info = $row;
+        }
+        return $info;
+    }
+
+    public function allowAccess($userId,$type,$id,$method) {
+        if ($type != "empresa" && $method != "get")
+            return false;
+
+        $sql = "SELECT ".$type." FROM ".$this->table_name.
+               " WHERE ".$this->table_name." = ".$id;
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            return ($row[$type] == $userId);
+        }
+        return false;        
+    }
     
+
+    private function getStatus($code) {
+        $status = array(
+            -1 => "Aguardando Aprovação",
+            0 => "Disponível para Investimento",
+            1 => "Emprestimo Completo",
+            2 => "Aguardando Transferencias",
+            3 => "Financiado",
+            4 => "Pagando Parcelas",
+            5 => "Atraso",
+            6 => "Inadimplente"
+        );
+        return $status[$code];
+    }
 }

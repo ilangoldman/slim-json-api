@@ -44,14 +44,24 @@ class DBOController {
         return ($user == $userId);
     }
     
-    public function validarUserAccess($userId,$userType,$id,$type) {
+    public function validarUserAccess($userId,$userType,$id,$type,$method) {
         // TODO
         // validar se o usuario pode acessar a classe q ele quer
-        if ($userType == $type) {
-            return ($userId == $id);
+
+        if ($userType == $type && $userId == $id) {
+            $allowAccess = true;
+        } else {
+            $dbo = $this->{$type}();
+            $allowAccess = $dbo->allowAccess($userId,$userType,$id,$method);
         }
 
-        return true;
+        return $allowAccess;
+    }
+
+    public function validarAdmin($userId) {
+        // TODO
+        // validar se o usuario pode acessar a classe q ele quer
+        return ($userId == 'admin');
     }
 
     public function getJSONAPI($dbo,$id) {
@@ -67,16 +77,20 @@ class DBOController {
     public function getIncludes($relationships) {
         $include = array();
         // var_export($relationships);
-        foreach($relationships as $k => $r) {        
+        foreach($relationships as $k => $r) {  
+            if ($r == NULL) continue;      
             $data = $r['data'];
-            $dbo = $this->{$k}();
-            // var_export($data);
+            // var_export($k);
+            // $dbo = $this->{$k}();
             if (isset($data[0])) {
                 foreach($data as $d) {
+                    $dbo = $this->{$d['type']}();
                     // var_export($d);
                     array_push($include,$this->getJSONAPI($dbo,$d['id']));  
                 }
             } else {
+                // var_export($data['type']);
+                $dbo = $this->{$data['type']}();                
                 array_push($include,$this->getJSONAPI($dbo,$data['id']));
             }
         }

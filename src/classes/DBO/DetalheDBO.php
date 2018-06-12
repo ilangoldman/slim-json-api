@@ -15,6 +15,7 @@ class DetalheDBO extends DBO {
     public function __construct($db) {
         parent::__construct($db);
         $this->setTableName("detalhe");
+        $this->setType("detalhe");
     }
     
     // helpers
@@ -52,12 +53,11 @@ class DetalheDBO extends DBO {
         );
     }
 
-    // public function getAttributes() {
-    //     $cols = $this->read($this->id);
-    //     $this->setType($cols['tipo']);
-    //     unset($cols['tipo']);
-    //     return $cols;
-    // }
+    public function getAttributes() {
+        $cols = $this->read($this->id);
+        unset($cols['emprestimo']);
+        return $cols;
+    }
 
     // CREATE
 

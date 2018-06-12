@@ -2,12 +2,12 @@
 
 class Price {
 
-    function calcularRating() {
+    function calcularRating($info) {
         return 1;
     }
 
     function calcularTaxa($rating) {
-        var_export($rating);
+        // var_export($rating);
         $taxa = array (
             0 => 0.01,
             1 => 0.03
@@ -27,7 +27,7 @@ class Price {
         }
         $e = bcsub($e, $cont, 15);
         $valor = bcmul($valor, $cont, 15);
-        return bcdiv($valor, $e, 15);
+        return bcdiv($valor, $e, 2);
     }
 
     function calcularJuros($saldoDevedor, $taxa) {

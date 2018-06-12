@@ -10,7 +10,7 @@ use \Service\InvestidorService as InvestidorService;
 
 // require __DIR__ . './routes/investidor.php';
 // require __DIR__ . './routes/empresa.php';
-
+require __DIR__ . './routes/admin.php';
 
 // CREATE
 
@@ -58,10 +58,13 @@ $app->post('/{type}', function (Request $request, Response $response, array $arg
     $userType = $request->getHeader('user-type')[0];
     $requestData = $request->getParsedBody();
 
+    $method = $request->getMethod();
+
     $controller = new DBOController($this->db);
 
     if ($userId != null) {
-        if (!$controller->validarUser($uid,$userId,$userType))
+        if (!$controller->validarUser($uid,$userId,$userType) &&
+            !$controller->validarUserAccess($userId,$userType,$id,$type,$method))
             return $response->withStatus(401);
     } else {
         $requestData['data']['attributes']['user'] = $uid;     
@@ -160,17 +163,20 @@ $app->get('/{type}/{id}', function (Request $request, Response $response, array 
     $userId = $request->getHeader('id')[0];
     $userType = $request->getHeader('user-type')[0];
 
+    $method = $request->getMethod();
+
     $controller = new DBOController($this->db);
 
     if ($controller->validarUser($uid,$userId,$userType) && 
-        $controller->validarUserAccess($userId,$userType,$id,$type)) {
+        $controller->validarUserAccess($userId,$userType,$id,$type,$method)) {
 
         $dbo = $controller->{$type}();
         $data = $controller->getJSONAPI($dbo,$id);
 
         $responseData = array( "data" => $data );
         if ($data['relationships'] != null) {
-            var_export($data['relationships']);
+            // var_export($data);
+            // var_export($data['relationships']);
             $include = $controller->getIncludes($data['relationships']);
             $responseData["include"] = $include;
         }
@@ -200,10 +206,12 @@ $app->put('/{type}/{id}', function (Request $request, Response $response, array 
     $userType = $request->getHeader('user-type')[0];
     $requestData = $request->getParsedBody();
 
+    $method = $request->getMethod();
+
     $controller = new DBOController($this->db);
 
    if ($controller->validarUser($uid,$userId,$userType) &&
-        $controller->validarUserAccess($userId,$userType,$id,$type)) {
+        $controller->validarUserAccess($userId,$userType,$id,$type,$method)) {
 
         $dbo = $controller->{$type}();
         $this->db->beginTransaction();        
@@ -223,15 +231,22 @@ $app->put('/{type}/{id}', function (Request $request, Response $response, array 
             
             if(isset($requestData['include'])) {
                 $relationships = $dbo->getRelationships();
+                // var_export($relationships);
                 foreach($requestData['include'] as $i) {
+                    // var_export($i);
                     $includeDBO = $controller->{$i['type']}();
                     if (isset($i['id'])) {
                         $includeID = $i['id'];
+                    } elseif ($i['type'] == 'detalhe') {
+                        $iData = $relationships[$i['attributes']['tipo']]['data'];
+                        if (isset($iData[0])) $iData = $iData[0];
+                        $includeID = $iData['id'];
                     } else {
                         $iData = $relationships[$i['type']]['data'];
                         if (isset($iData[0])) $iData = $iData[0];
                         $includeID = $iData['id'];
                     }
+                    // var_export($includeID);
                     $includeDBO->updateAll($includeID,$i['attributes']);
                 }
             }
@@ -272,10 +287,12 @@ $app->delete('/{type}/{id}', function (Request $request, Response $response, arr
     $userId = $request->getHeader('id')[0];
     $userType = $request->getHeader('user-type')[0];
 
+    $method = $request->getMethod();
+
     $controller = new DBOController($this->db);
 
     if ($controller->validarUser($uid,$userId,$userType) &&
-        $controller->validarUserAccess($userId,$userType,$id,$type)) {
+        $controller->validarUserAccess($userId,$userType,$id,$type,$method)) {
 
         $dbo = $controller->{$type}();
         $this->db->beginTransaction();        
