@@ -4,7 +4,7 @@ namespace DBO;
 use Price;
 
 class EmprestimoDBO extends DBO {
-    private $price;
+    protected $price;
 
     private $criado;
     private $modificado;
@@ -20,6 +20,8 @@ class EmprestimoDBO extends DBO {
     private $motivo;
     private $faturamento;
     private $rating;
+
+    private $saldo_devedor;
 
     // Pensar como fazer esses detalhes
     private $detalhe;
@@ -56,6 +58,8 @@ class EmprestimoDBO extends DBO {
         
         $this->status = (isset($info['status'])) ?
             $info['status'] : -1;
+
+        $this->saldo_devedor = $info['saldo_devedor'];
     }
 
     protected function getCol() {
@@ -70,7 +74,8 @@ class EmprestimoDBO extends DBO {
             "status" => $this->status, 
             "motivo" => $this->motivo,
             "faturamento" => $this->faturamento,
-            "rating" => $this->rating
+            "rating" => $this->rating,
+            "saldo_devedor" => $this->saldo_devedor
         );
     }
 
@@ -168,17 +173,17 @@ class EmprestimoDBO extends DBO {
 
     private function empresaFinanciada() {
         $sql = "UPDATE ".$this->table_name.
-            " SET valor = saldo_devedor".
+            " SET saldo_devedor = valor".
             " WHERE ".$this->table_name." = ".$this->id.
-            " AND valor = 0";
-        $stmt = $this->db->exec($sql);        
+            " AND saldo_devedor = 0";
+        $stmt = $this->db->exec($sql);    
     }
 
     private function empresaNaoFinanciada() {
         $sql = "UPDATE ".$this->table_name.
-            " SET status = 0, valor = 0".
+            " SET status = 0, saldo_devedor = 0".
             " WHERE ".$this->table_name." = ".$this->id;
-        var_export($sql);
+        // var_export($sql);
         $stmt = $this->db->exec($sql);        
     }
 
@@ -192,11 +197,11 @@ class EmprestimoDBO extends DBO {
 
     public function addInvestimento($investido) {
         $sql = "UPDATE ".$this->table_name.
-               " SET valor = IF(valor - ".$investido." = 0, saldo_devedor,valor - ".$investido.")".
-               ", status = IF(valor = saldo_devedor, 1,0)".
+               " SET saldo_devedor = IF(saldo_devedor - ".$investido." = 0, valor,saldo_devedor - ".$investido.")".
+               ", status = IF(saldo_devedor = valor, 1,0)".
                " WHERE ".$this->table_name." = ".$this->id.
-               " AND status = 0 AND valor != 0";
-        var_export($sql);
+               " AND status = 0 AND saldo_devedor != 0";
+        // var_export($sql);
         $stmt = $this->db->exec($sql);
         // if ($stmt == 0) $this->empresaFinanciada();
         return ($stmt > 0);
@@ -204,7 +209,7 @@ class EmprestimoDBO extends DBO {
 
     public function removeInvestimento($investido) {
         $sql = "UPDATE ".$this->table_name.
-               " SET valor = valor + ".$investido.
+               " SET saldo_devedor = saldo_devedor + ".$investido.
                " WHERE ".$this->table_name." = ".$this->id.
                " AND status = 0";
         $stmt = $this->db->exec($sql);

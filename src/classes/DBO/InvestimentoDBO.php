@@ -202,7 +202,7 @@ class InvestimentoDBO extends DBO {
 
     public function valorArrecadado() {
         $sql = "UPDATE ".$this->table_name.
-            " SET status = 2, valor = saldo_devedor".
+            " SET status = 2".
             " WHERE ".$this->table_name." = ".$this->id.
             " AND status = 0";
         $stmt = $this->db->exec($sql);        

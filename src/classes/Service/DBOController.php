@@ -64,6 +64,23 @@ class DBOController {
         return ($userId == 'admin');
     }
 
+    public function getAllJSONAPI($dbo) {
+        $data = $dbo->readAll();
+        // var_export($data);
+        foreach($data as $d) {
+            $type = $dbo->getType();
+            $id = $d[$type];
+            unset($d[$type]);
+            $result[] = array(
+                "type" => $type,
+                "id" => $id,
+                "attributes" => $d
+            );
+        }
+
+        return $result;
+    }
+
     public function getJSONAPI($dbo,$id) {
         $dbo->setId($id);
         return array(

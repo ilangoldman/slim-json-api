@@ -3,52 +3,16 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
 use \Service\DBOController as DBOController;
-use \Service\InvestidorService as InvestidorService;
+// use \Service\InvestidorService as InvestidorService;
 
 
 // Add routing
 
-// require __DIR__ . './routes/investidor.php';
+require __DIR__ . './routes/investidor.php';
 // require __DIR__ . './routes/empresa.php';
 require __DIR__ . './routes/admin.php';
 
 // CREATE
-
-// $app->post('/conquista/{id}', function (Request $request, Response $response, array $args) {
-//     $id = $args['id'];    
-
-//     $uid = $request->getHeader('user-id')[0];
-//     $userId = $request->getHeader('id')[0];
-//     $userType = $request->getHeader('user-type')[0];
-//     $requestData = $request->getParsedBody();
-
-//     $controller = new DBOController($this->db);
-    
-//     $dbo = $controller->{"investidor"}();       
-//     $this->db->beginTransaction();
-//     try {
-//         $dbo->setId($userId);
-//         $dbo->addConquista("conquista",$id);
-
-//         $data = $controller->getJSONAPI($dbo,$userId);
-        
-//         $responseData = array( "data" => $data );
-//         $jsonResponse = $response->withJSON($responseData)->withStatus(201);
-        
-//         $this->logger->addInfo("Sucesso: Cadastro Generico ".$uid." - ". $data['id']);
-
-//         $this->db->commit();
-//     } catch(PDOException $e) {
-//         $this->logger->addInfo("ERRO: Cadastro Generico ".$uid.": ".$e->getMessage());
-        
-//         $jsonResponse = $response->withStatus(400);
-//         $this->db->rollBack();
-//     }
-        
-//     return $jsonResponse
-//         ->withHeader('Content-Type', 'application/vnd.api+json')
-//         ->withHeader('Access-Control-Allow-Origin', '*');
-// });
 
 $app->post('/{type}', function (Request $request, Response $response, array $args) {
     $type = $args['type'];

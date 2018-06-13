@@ -17,6 +17,16 @@ abstract class DBO {
         $this->controller = new DBOController($this->db);
     }
 
+    public function allowAccess($userId,$type,$id,$method) {
+        $sql = "SELECT ".$type." FROM ".$this->table_name.
+               " WHERE ".$this->table_name." = ".$id;
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            return ($row[$type] == $userId);
+        }
+        return false;
+    }
+
     // API functions
 
     protected function setType($type) {
@@ -149,7 +159,7 @@ abstract class DBO {
         $sql = "INSERT INTO ".$this->table_name.
         " (".$this->getSqlColKeys().")".
         " values (".$values.');';
-        // var_export($sql);
+        var_export($sql);
         $stmt = $this->db->exec($sql);
         return $this->readId();
     }
