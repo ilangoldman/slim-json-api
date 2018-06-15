@@ -1,7 +1,6 @@
 <?php
-namespace DBO;
-
-use \DBO\EmprestimoDBO;
+namespace DBO\Investimento;
+use \DBO\Investimento\EmprestimoDBO;
 
 class OportunidadeDBO extends EmprestimoDBO {
 
@@ -23,16 +22,19 @@ class OportunidadeDBO extends EmprestimoDBO {
             " AND status = 0";
         // var_export($sql);
         $stmt = $this->db->query($sql);
+        
         if ($row = $stmt->fetch()) {
             $this->readCol($row);
+        } else {
+            return null;
         }
-        
+
         return $this->getCol();
     }
 
     public function getAttributes() {
         $attrib = $this->read($this->id);
-        // var_export($attrib);
+        if ($attrib == null) return null;
         unset($attrib['empresa']);
         
         return $attrib;

@@ -1,5 +1,6 @@
 <?php
-namespace DBO;
+namespace DBO\Gamefication;
+use \DBO\DBO;
 
 class ConquistaDBO extends DBO {
     private $criado;
@@ -16,9 +17,9 @@ class ConquistaDBO extends DBO {
     // helpers
 
     protected function addCol($info) {
-        $this->titulo = filter_var($info['titulo'], FILTER_SANITIZE_STRING);
-        $this->descricao = filter_var($info['descricao'], FILTER_SANITIZE_STRING);
-        $this->pontos = filter_var($info['pontos'], FILTER_SANITIZE_NUMBER_INT);        
+        $this->titulo = filter_var($info['titulo'], FILTER_SANITIZE_STRING) ?? null;
+        $this->descricao = filter_var($info['descricao'], FILTER_SANITIZE_STRING) ?? null;
+        $this->pontos = filter_var($info['pontos'], FILTER_SANITIZE_NUMBER_INT) ?? null;        
     }
 
     protected function getCol() {

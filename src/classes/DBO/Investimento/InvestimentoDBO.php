@@ -1,6 +1,6 @@
 <?php
-namespace DBO;
-
+namespace DBO\Investimento;
+use \DBO\DBO;
 use Price;
 
 class InvestimentoDBO extends DBO {
@@ -31,6 +31,35 @@ class InvestimentoDBO extends DBO {
         $this->price = new Price();
     }
 
+    private function formatStatus($code) {
+        $status = array(
+            0 => "Lista de Espera",
+            1 => "Oferta Aceita",
+            2 => "Aguardando Transferencias",
+            3 => "Transferencia Realizada",
+            4 => "Recebendo Parcelas",
+            5 => "Atraso",
+            6 => "Inadimplente"
+        );
+        return $status[$code];
+    }
+
+    public function allowAccess($userId,$type,$id,$method) {
+        if ($type != "investidor")
+            return false;
+
+        return parent::allowAccess($userId,$type,$id,$method);
+    }
+
+    //setters
+    public function setInvestidor($investidor) {
+        $this->investidor = $investidor;
+    }
+
+    public function setEmprestimo($emprestimo) {
+        $this->emprestimo = $emprestimo;
+    }
+
     // helper
     
     protected function addCol($info) {
@@ -42,7 +71,7 @@ class InvestimentoDBO extends DBO {
 
         $this->getInfoEmprestimo();
 
-        $this->contrato = filter_var($info['contrato'],FILTER_SANITIZE_STRING);        
+        $this->contrato = filter_var($info['contrato'],FILTER_SANITIZE_STRING);
         $this->comprovante = filter_var($info['comprovante'],FILTER_SANITIZE_STRING);
     }
 
@@ -62,6 +91,8 @@ class InvestimentoDBO extends DBO {
         $this->comprovante = $info['comprovante'];
     }
 
+    // getters
+
     protected function getCol() {
         return array(
             "investidor" => $this->investidor,
@@ -78,18 +109,10 @@ class InvestimentoDBO extends DBO {
     }
 
     protected function getSqlCol() {
-        return array(
-            "investidor" => $this->investidor,
-            "emprestimo" => $this->emprestimo,
-
-            "taxa" => $this->taxa,
-            "valor" => $this->valor,
-            "status" => $this->status, 
-            "prazo" => $this->prazo, 
-            "valor_parcela" => $this->valor_parcela,
-            "contrato" => '"'.$this->contrato.'"',
-            "comprovante" => '"'.$this->comprovante.'"'
-        );
+        $cols = $this->getCol();
+        $cols["contrato"] = '"'.$this->contrato.'"';
+        $cols["comprovante"] = '"'.$this->comprovante.'"';
+        return $cols;
     }
 
     
@@ -138,27 +161,84 @@ class InvestimentoDBO extends DBO {
         $this->valor_parcela = $this->price->calcularParcela($this->valor,$this->prazo,$this->taxa);
     }
 
+
+
+    // CREATE
+
+
+
     public function create($info) {
         $this->addCol($info);
 
         $dbo = $this->controller->emprestimo();
-        $dbo->setId($this->emprestimo);
-        // var_export($this->status);        
+        $dbo->setId($this->emprestimo);      
         if ($dbo->addInvestimento($this->valor)) {
-            // var_export($this->status);
             $this->status = 1;
         }
 
-        // var_export($this->status);
-
-        $values = implode(",",$this->getSqlCol());
-        $sql = "INSERT INTO ".$this->table_name.
-        " (".$this->getSqlColKeys().")".
-        " values (".$values.');';
-        // var_export($sql);
-        $stmt = $this->db->exec($sql);
-        return $this->readId();
+        return parent::create($info);
     }
+
+
+
+    // READ
+    public function readAll() {
+        $sql = "SELECT ".$this->table_name.",".$this->getColKeys().
+            " FROM ".$this->table_name.
+            " WHERE investidor = ".$this->investidor;
+        // var_export($sql);
+        $stmt = $this->db->query($sql);
+        $result = array();
+        while ($row = $stmt->fetch()) {
+            array_push($result,$row);
+        }
+
+        return $result;
+    }
+
+
+    // UPDATE
+    public function updateStatus($code, $valor = null) {
+        $strValor = (isset($valor)) ? ', valor = '.$valor : '';  
+        $sql = "UPDATE ".$this->table_name.
+            " SET status = ".$code.$strValor.
+            " WHERE ".$this->table_name." = ".$this->id;
+        // var_export($sql);
+        $stmt = $this->db->exec($sql);       
+    }
+
+    public function updateAll($id, $info) {
+        $this->read($id);
+
+        $dbo = $this->controller->emprestimo();
+        $dbo->addTransferencia($this->valor);
+        
+        $info['status'] = 3;
+        return parent::updateAll($id,$info);
+    }
+
+
+
+
+    // DELETE
+    public function delete($id) {
+        $this->read($this->id);
+        // var_export($this->emprestimo);
+        $dbo = $this->controller->emprestimo();
+        $dbo->setId($this->emprestimo);
+
+        $statusEmprestimo = $dbo->getStatus();
+        $dbo->removeInvestimento($this->valor);
+        if ($statusEmprestimo != $dbo->getStatus()) {
+            $dbo->setStatus($statusEmprestimo);
+            $this->updateInvestimentoListaDeEspera($statusEmprestimo);
+        }
+
+        return parent::delete($id);
+    }
+
+
+    // Business Logic
 
     public function getListaDeEspera($id, $valorRestante) {
         $dbo = $this->controller->emprestimo();
@@ -167,13 +247,11 @@ class InvestimentoDBO extends DBO {
         $sql = "SELECT valor,".$this->table_name.
                " FROM ".$this->table_name.
                " WHERE emprestimo = ".$id.
-               " AND status != 1".
+               " AND status = 0".
                " ORDER BY criado, investimento";
         // var_export($sql);
         $stmt = $this->db->query($sql);
         while ($row = $stmt->fetch()) {
-            // TODO
-            // Como analisar quem pegar?
             extract($row);
             $this->setId($investimento);
             if ($valor < $valorRestante) {
@@ -190,31 +268,33 @@ class InvestimentoDBO extends DBO {
         }
     }
 
-    public function updateStatus($code, $valor = null) {
-        $strValor = (isset($valor)) ? ', valor = '.$valor : '';  
+    public function updateInvestimentoListaDeEspera($status) {
         $sql = "UPDATE ".$this->table_name.
-            " SET status = 1".$strValor.
-            " WHERE ".$this->table_name." = ".$this->id.
-            " AND status = 0";
-        // var_export($sql);
-        $stmt = $this->db->exec($sql);       
+               " SET status = ".$status.
+               " WHERE status = 1 AND emprestimo = ".$this->emprestimo;
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
     }
 
-    public function valorArrecadado() {
-        $sql = "UPDATE ".$this->table_name.
-            " SET status = 2".
-            " WHERE ".$this->table_name." = ".$this->id.
-            " AND status = 0";
-        $stmt = $this->db->exec($sql);        
-    }
-
-    public function emprestimoFinanciado() {
+    public function emprestimoFinanciado($id) {
          $sql = "UPDATE ".$this->table_name.
-            " SET status = 3".
-            " WHERE ".$this->table_name." = ".$this->id.
+            " SET status = 2".
+            " WHERE emprestimo = ".$id.
             " AND status = 1";
-        $stmt = $this->db->exec($sql);        
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0); 
     }
+
+    
+
+    // public function valorArrecadado() {
+    //     $sql = "UPDATE ".$this->table_name.
+    //         " SET status = 2".
+    //         " WHERE ".$this->table_name." = ".$this->id.
+    //         " AND status = 0";
+    //     $stmt = $this->db->exec($sql);        
+    // }
+
 
     public function readTemInvestimentos($investidor) {
          $sql = "SELECT count(".$this->table_name.") as ".$this->table_name. 
@@ -228,45 +308,13 @@ class InvestimentoDBO extends DBO {
         return !($investimento > 0);
     }
 
-    private function getStatus($code) {
-        $status = array(
-            0 => "Lista de Espera",
-            1 => "Oferta Aceita",
-            2 => "Aguardando Transferencias",
-            3 => "Financiado",
-            4 => "Recebendo Parcelas",
-            5 => "Atraso",
-            6 => "Inadimplente"
-        );
-        return $status[$code];
-    }
+    
 
-    public function allowAccess($userId,$type,$id,$method) {
-        if ($type != "investidor")
-            return false;
-
-        $sql = "SELECT ".$type." FROM ".$this->table_name.
-               " WHERE ".$this->table_name." = ".$id;
-        $stmt = $this->db->query($sql);
-        if ($row = $stmt->fetch()) {
-            return ($row[$type] == $userId);
-        }
-        return false;        
-    }
+    
 
 
-    public function delete($id) {
-        $this->addId($id);
-        $this->read($this->id);
-        // var_export($this->emprestimo);
-        $dbo = $this->controller->emprestimo();
-        $dbo->setId($this->emprestimo);
-        $dbo->removeInvestimento($this->valor);
+ 
 
-        $sql = "DELETE FROM ".$this->table_name.
-               " WHERE ".$this->table_name." = ".$id.";";
-        $stmt = $this->db->exec($sql);
 
-        return ($stmt > 0);
-    }
+
 }

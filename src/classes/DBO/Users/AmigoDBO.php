@@ -1,20 +1,25 @@
 <?php
-namespace DBO;
+namespace DBO\Users;
+use \DBO\DBO;
 
 class AmigoDBO extends DBO {
     private $criado;
 
+    // quem convidou
     private $investidor;
     private $empresa;
 
     private $nome;
     private $email;
     private $status; 
+
+    // user do amigo
     private $user;
     
     public function __construct($db) {
         parent::__construct($db);
         $this->setTableName("amigo");
+        $this->setType("amigo");
     }
     
     // helpers
@@ -26,7 +31,7 @@ class AmigoDBO extends DBO {
         $this->nome = $info['nome'];        
         $this->email = $info['email'];                
         $this->status = $info['status'];
-        $this->user = $info['user'];
+        $this->user = $info['user'] ?? null;
     }
 
     protected function getCol() {
@@ -42,15 +47,11 @@ class AmigoDBO extends DBO {
     }
 
     protected function getSqlCol() {
-        return array(
-            "investidor" => $this->investidor,
-            "empresa" => $this->empresa,
-
-            "nome" => '"'.$this->nome.'"',
-            "email" => '"'.$this->email.'"',
-            "status" => $this->status,            
-            "user" => $this->user    
-        );
+        $cols = $this->getCol();
+        $cols["nome"] = '"'.$this->nome.'"';
+        $cols["email"] = '"'.$this->email.'"';
+        $cols["user"] = $cols['user'] ?? 'null';  
+        return $cols;
     }
 
     public function getRelationships() {
@@ -73,12 +74,14 @@ class AmigoDBO extends DBO {
         }
     }
 
-    // CREATE
+    public function create($info) {
+        $info['status'] = 0;
+        return parent::create($info);
+    }
 
-    // READ
-  
-
-    // UPDATE
-
+    public function updateAll($id,$info) {
+        $info['status'] = 1;
+        return parent::updateAll($id,$info);
+    }
 
 }

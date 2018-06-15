@@ -1,5 +1,6 @@
 <?php
-namespace DBO;
+namespace DBO\Gamefication;
+use \DBO\DBO;
 
 class PontuacaoDBO extends DBO {
     private $criado;
@@ -18,10 +19,10 @@ class PontuacaoDBO extends DBO {
     // helpers
 
     protected function addCol($info) {
-        $this->nivel = filter_var($info['nivel'], FILTER_SANITIZE_NUMBER_INT);
-        $this->pontos = filter_var($info['pontos'], FILTER_SANITIZE_NUMBER_INT);
-        $this->titulo = filter_var($info['titulo'], FILTER_SANITIZE_STRING);
-        $this->simbolo = filter_var($info['simbolo'], FILTER_SANITIZE_STRING);
+        $this->nivel = filter_var($info['nivel'], FILTER_SANITIZE_NUMBER_INT) ?? null;
+        $this->pontos = filter_var($info['pontos'], FILTER_SANITIZE_NUMBER_INT) ?? null;
+        $this->titulo = filter_var($info['titulo'], FILTER_SANITIZE_STRING) ?? null;
+        $this->simbolo = filter_var($info['simbolo'], FILTER_SANITIZE_STRING) ?? null;
     }
 
     protected function getCol() {

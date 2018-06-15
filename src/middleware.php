@@ -9,6 +9,7 @@
 
 // TODO: Add middleware user authentication
 
+// validar que o user com type admin de fato é um administrador!
 
 // $app->add(function (Request $request, Response $response, callable $next) {
 //     // Use the PSR 7 $response object

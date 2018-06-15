@@ -1,6 +1,6 @@
 <?php
-namespace DBO;
-
+namespace DBO\Investimento;
+use \DBO\DBO;
 use Price;
 
 class EmprestimoDBO extends DBO {
@@ -23,6 +23,7 @@ class EmprestimoDBO extends DBO {
 
     private $saldo_devedor;
 
+    // TODO
     // Pensar como fazer esses detalhes
     private $detalhe;
     
@@ -34,32 +35,61 @@ class EmprestimoDBO extends DBO {
         $this->price = new Price();
     }
 
+    private function formatStatus($code) {
+        $status = array(
+            -1 => "Aguardando Aprovação",
+            0 => "Disponível para Investimento",
+            1 => "Emprestimo Completo",
+            2 => "Aguardando Transferencias",
+            3 => "Financiado",
+            4 => "Pagando Parcelas",
+            5 => "Atraso",
+            6 => "Inadimplente"
+        );
+        return $status[$code];
+    }
+
+    public function allowAccess($userId,$type,$id,$method) {
+        if ($type != "empresa" && $method != "get")
+            return false;
+        return parent::allowAccess($userId,$type,$id,$method);        
+    }
+
     // helper
     
     protected function addCol($info) {
-        $this->empresa = $info['empresa'];
+        $this->empresa = $info['empresa'] ?? null;
         
-        $this->avalista = filter_var($info['avalista'],FILTER_SANITIZE_STRING);
-        $this->valor = filter_var($info['valor'],FILTER_SANITIZE_NUMBER_INT);
-        $this->prazo = filter_var($info['prazo'],FILTER_SANITIZE_NUMBER_INT); 
-        $this->motivo = filter_var($info['motivo'],FILTER_SANITIZE_STRING);
-        $this->faturamento = filter_var($info['faturamento'],FILTER_SANITIZE_NUMBER_INT);
+        $this->avalista = filter_var($info['avalista'],FILTER_SANITIZE_STRING) ?? null;
+        $this->valor = filter_var($info['valor'],FILTER_SANITIZE_NUMBER_INT) ?? null;
+        $this->prazo = filter_var($info['prazo'],FILTER_SANITIZE_NUMBER_INT) ?? null; 
+        $this->motivo = filter_var($info['motivo'],FILTER_SANITIZE_STRING) ?? null;
+        $this->faturamento = filter_var($info['faturamento'],FILTER_SANITIZE_NUMBER_INT) ?? null;
 
 
-        $this->rating = (isset($info['rating'])) ?
-            $info['rating'] :
+        $this->rating = $info['rating'] ??
             $this->price->calcularRating($info);
-        $this->taxa = (isset($info['taxa'])) ?
-            $info['taxa'] :
+        $this->taxa = $info['taxa'] ??
             $this->price->calcularTaxa($this->rating) * 1.23;
-        $this->valor_parcela = (isset($info['valor_parcela'])) ?
-            $info['valor_parcela'] :
+        $this->valor_parcela = $info['valor_parcela'] ??
             $this->price->calcularParcela($this->valor,$this->prazo,$this->taxa);
-        
-        $this->status = (isset($info['status'])) ?
-            $info['status'] : -1;
+        $this->status = $info['status'] ?? -1;
 
-        $this->saldo_devedor = $info['saldo_devedor'];
+        $this->saldo_devedor = $info['saldo_devedor'] ?? null;
+    }
+
+    protected function readCol($info) {
+        $this->empresa = $info["empresa"] ?? null;
+        $this->avalista = $info["avalista"] ?? null;
+        $this->valor = $info["valor"] ?? null; 
+        $this->taxa = $info["taxa"] ?? null;
+        $this->prazo = $info["prazo"] ?? null; 
+        $this->valor_parcela = $info["valor_parcela"] ?? null;
+        $this->status = $info["status"] ?? null; 
+        $this->motivo = $info["motivo"] ?? null;
+        $this->faturamento = $info["faturamento"] ?? null;
+        $this->rating = $info["rating"] ?? null;
+        $this->saldo_devedor = $info["saldo_devedor"] ?? null;
     }
 
     protected function getCol() {
@@ -80,19 +110,11 @@ class EmprestimoDBO extends DBO {
     }
 
     protected function getSqlCol() {
-        return array(
-            "empresa" => $this->empresa,
-
-            "avalista" => '"'.$this->avalista.'"',
-            "valor" => $this->valor, 
-            "taxa" => $this->taxa,
-            "prazo" => $this->prazo, 
-            "valor_parcela" => $this->valor_parcela,
-            "status" => $this->status, 
-            "motivo" => '"'.$this->motivo.'"',
-            "faturamento" => $this->faturamento,
-            "rating" => $this->rating
-        );
+        $cols = $this->getCol();
+        $cols["avalista"] = '"'.$this->avalista.'"';
+        $cols["motivo"] = '"'.$this->motivo.'"';
+        $cols["saldo_devedor"] = $cols['saldo_devedor'] ?? "null";
+        return $cols;
     }
 
     public function getAttributes() {
@@ -171,6 +193,34 @@ class EmprestimoDBO extends DBO {
         return $response;
     }
 
+
+    // Business Logic Functions
+    
+    
+    public function aprovarEmprestimo() {
+        $sql = "UPDATE ".$this->table_name.
+               " SET status = 0, saldo_devedor = valor".
+               " WHERE ".$this->table_name." = ".$this->id;
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
+    }
+
+    public function iniciarTransferencias() {
+        $sql = "UPDATE ".$this->table_name.
+               " SET status = 2, saldo_devedor = valor".
+               " WHERE ".$this->table_name." = ".$this->id;
+        $stmt = $this->db->exec($sql);
+        if ($stmt == 0) return false;
+        
+        $dbo = $this->controller->investimento();
+        return $dbo->emprestimoFinanciado($this->id);        
+    }
+
+
+
+
+
+
     private function empresaFinanciada() {
         $sql = "UPDATE ".$this->table_name.
             " SET saldo_devedor = valor".
@@ -187,13 +237,9 @@ class EmprestimoDBO extends DBO {
         $stmt = $this->db->exec($sql);        
     }
 
-    public function aprovarEmprestimo() {
-        $sql = "UPDATE ".$this->table_name.
-               " SET status = 0, saldo_devedor = valor".
-               " WHERE ".$this->table_name." = ".$this->id;
-        $stmt = $this->db->exec($sql);
-        return ($stmt > 0);
-    }
+
+
+    
 
     public function addInvestimento($investido) {
         $sql = "UPDATE ".$this->table_name.
@@ -211,7 +257,7 @@ class EmprestimoDBO extends DBO {
         $sql = "UPDATE ".$this->table_name.
                " SET saldo_devedor = saldo_devedor + ".$investido.
                " WHERE ".$this->table_name." = ".$this->id.
-               " AND status = 0";
+               " AND status in (0,2)";
         $stmt = $this->db->exec($sql);
         if ($stmt == 0) {
             $this->empresaNaoFinanciada();
@@ -221,6 +267,24 @@ class EmprestimoDBO extends DBO {
         }
         return ($stmt > 0);
     }
+
+
+    public function addTransferencia($investido) {
+        $sql = "UPDATE ".$this->table_name.
+               " SET saldo_devedor = IF(saldo_devedor - ".$investido." = 0, valor,saldo_devedor - ".$investido.")".
+               ", status = IF(saldo_devedor = valor, 3,2)".
+               " WHERE ".$this->table_name." = ".$this->id.
+               " AND status = 2 AND saldo_devedor != 0";
+        // var_export($sql);
+        $stmt = $this->db->exec($sql);
+        // if ($stmt == 0) $this->empresaFinanciada();
+        return ($stmt > 0);
+    }
+
+
+    
+
+
 
     public function getInfoEmprestimoInvestir($id) {
         $sql = "SELECT valor, prazo, rating FROM ".$this->table_name.
@@ -234,31 +298,24 @@ class EmprestimoDBO extends DBO {
         return $info;
     }
 
-    public function allowAccess($userId,$type,$id,$method) {
-        if ($type != "empresa" && $method != "get")
-            return false;
 
-        $sql = "SELECT ".$type." FROM ".$this->table_name.
-               " WHERE ".$this->table_name." = ".$id;
-        $stmt = $this->db->query($sql);
+    public function getStatus() {
+        $sql = "SELECT status FROM".$this->table_name.
+               " WHERE ".$this->table_name." = ".$this->id;
         if ($row = $stmt->fetch()) {
-            return ($row[$type] == $userId);
+            extract($row);
         }
-        return false;        
+        return $status ?? null;
     }
     
-
-    private function getStatus($code) {
-        $status = array(
-            -1 => "Aguardando Aprovação",
-            0 => "Disponível para Investimento",
-            1 => "Emprestimo Completo",
-            2 => "Aguardando Transferencias",
-            3 => "Financiado",
-            4 => "Pagando Parcelas",
-            5 => "Atraso",
-            6 => "Inadimplente"
-        );
-        return $status[$code];
+    public function setStatus($status) {
+        $sql = "UPDATE ".$this->table_name.
+               " SET status = ".$status.
+               " WHERE ".$this->table_name." = ".$this->id;
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
     }
+
+
+
 }

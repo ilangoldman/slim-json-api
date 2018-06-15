@@ -1,25 +1,30 @@
 <?php
 namespace Service;
 
-use \DBO\InvestidorDBO as Investidor;
-use \DBO\InvestimentoDBO as Investimento;
-use \DBO\OportunidadeDBO as Oportunidade;
-use \DBO\CarteiraDBO as Carteira;
+// Gamefication
+use \DBO\Gamefication\PontuacaoDBO as Pontuacao;
+use \DBO\Gamefication\BeneficioDBO as Beneficio;
+use \DBO\Gamefication\RecompensaDBO as Recompensa;
+use \DBO\Gamefication\ConquistaDBO as Conquista;
+use \DBO\Gamefication\AtividadeDBO as Atividade;
 
-use \DBO\EmpresaDBO as Empresa;
-use \DBO\EmprestimoDBO as Emprestimo;
-use \DBO\DetalheDBO as Detalhe;
+// Investimentos
+use \DBO\Investimento\EmprestimoDBO as Emprestimo;
+use \DBO\Investimento\DetalheDBO as Detalhe;
+use \DBO\Investimento\InvestimentoDBO as Investimento;
+use \DBO\Investimento\OportunidadeDBO as Oportunidade;
+use \DBO\Investimento\ParcelaDBO as Parcela;
 
-use \DBO\ParcelaDBO as Parcela;
+// Notificaoes
+use \DBO\Notificacao\NotificacaoDBO as Notificacao;
+use \DBO\Notificacao\MensagemDBO as Mensagem;
 
-use \DBO\EnderecoDBO as Endereco;
-use \DBO\ContaBancariaDBO as ContaBancaria;
-
-use \DBO\PontuacaoDBO as Pontuacao;
-use \DBO\AmigoDBO as Amigo;
-use \DBO\BeneficioDBO as Beneficio;
-use \DBO\ConquistaDBO as Conquista;
-
+// Users
+use \DBO\Users\EmpresaDBO as Empresa;
+use \DBO\Users\InvestidorDBO as Investidor;
+use \DBO\Users\EnderecoDBO as Endereco;
+use \DBO\Users\ContaBancariaDBO as ContaBancaria;
+use \DBO\Users\AmigoDBO as Amigo;
 
 
 class DBOController {
@@ -30,6 +35,8 @@ class DBOController {
         $this->db = $db;
     }
 
+
+    // security validation
     public function validarUser($userId, $id, $type) {
         if ($type == 'investidor') {
             $investidor = new Investidor($this->db);
@@ -64,6 +71,16 @@ class DBOController {
         return ($userId == 'admin');
     }
 
+    public function allowEmpresaOnly($type) {
+        return ($type == 'empresa');
+    }
+
+    public function allowInvestidorOnly($type) {
+        return ($type == 'investidor');
+    }
+
+
+    // api
     public function getAllJSONAPI($dbo) {
         $data = $dbo->readAll();
         // var_export($data);
@@ -83,10 +100,12 @@ class DBOController {
 
     public function getJSONAPI($dbo,$id) {
         $dbo->setId($id);
+        $attributes = $dbo->getAttributes();
+        if ($attributes == null) return null;
         return array(
             "type" => $dbo->getType(),
             "id" => $id,
-            "attributes" => $dbo->getAttributes(),
+            "attributes" => $attributes,
             "relationships" => $dbo->getRelationships()
         );
     }
@@ -115,12 +134,22 @@ class DBOController {
         return $include;
     }
     
+    // Gamefication
 
-
-    
-    public function empresa() {
-        return new Empresa($this->db);        
+    public function pontuacao() {
+        return new Pontuacao($this->db);
     }
+
+    public function atividade() {
+        return new Atividade($this->db);
+    }
+
+    public function Recompensa() {
+        return new recompensa($this->db);
+    }
+
+
+    // Investimento
 
     public function emprestimo() {
         return new Emprestimo($this->db);        
@@ -128,17 +157,6 @@ class DBOController {
 
     public function detalhe() {
         return new Detalhe($this->db);        
-    }
-
-    public function parcela() {
-        return new Parcela($this->db);        
-    }
-    
-
-
-
-    public function investidor() {
-        return new Investidor($this->db);        
     }
 
     public function investimento() {
@@ -149,14 +167,30 @@ class DBOController {
         return new Oportunidade($this->db);        
     }
 
-    public function carteira() {
-        return new Carteira($this->db);        
+    public function parcela() {
+        return new Parcela($this->db);        
     }
-    
+
     // public function movimentacao() {
-    //     return new Oportunidade($this->db);        
+    //     return new Movimentacao($this->db);        
     // }
 
+
+    // Notificacao
+    public function mensagem() {
+        return new Mensagem($this->db);        
+    }
+
+
+    // Users
+
+    public function empresa() {
+        return new Empresa($this->db);        
+    }
+
+    public function investidor() {
+        return new Investidor($this->db);        
+    }
 
     public function endereco() {
         return new Endereco($this->db);
@@ -166,21 +200,8 @@ class DBOController {
         return new ContaBancaria($this->db);
     }
 
-
-
-    public function pontuacao() {
-        return new Pontuacao($this->db);
-    }
-
-    public function conquista() {
-        return new Conquista($this->db);
-    }
-
-    public function beneficio() {
-        return new Beneficio($this->db);
-    }
-
     public function amigo() {
         return new Amigo($this->db);
     }
+
 }

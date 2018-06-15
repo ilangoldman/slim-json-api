@@ -24,11 +24,11 @@ $app->get('/oportunidade', function (Request $request, Response $response, array
         $responseData = array( "data" => $data );
         $jsonResponse = $response->withJSON($responseData);
 
-        $this->logger->addInfo("Sucesso: Read oportunidade ".$uid."|".$userId." - ". $id);
+        $this->logger->addInfo("Sucesso: Read oportunidade ".$uid."|".$userId);
     } else {
         $jsonResponse = $response->withStatus(401);
 
-        $this->logger->addInfo("ERRO: Read oportunidade ".$uid."|".$userId." - ".$id);
+        $this->logger->addInfo("ERRO: Read oportunidade ".$uid."|".$userId);
     }
 
     return $jsonResponse
@@ -37,6 +37,33 @@ $app->get('/oportunidade', function (Request $request, Response $response, array
 });
 
 
+$app->get('/investimento', function (Request $request, Response $response, array $args) {
+
+    $uid = $request->getHeader('user-id')[0];
+    $userId = $request->getHeader('id')[0];
+    $userType = $request->getHeader('user-type')[0];
+
+    $controller = new DBOController($this->db);
+
+    if ($controller->allowInvestidorOnly($userType) &&
+        $controller->validarUser($uid,$userId,$userType)) {
+
+        $dbo = $controller->investimento();
+        $dbo->setInvestidor($userId);
+        $data = $controller->getAllJSONAPI($dbo);
+        $responseData = array( "data" => $data );
+        $jsonResponse = $response->withJSON($responseData);
+
+        $this->logger->addInfo("Sucesso: Read all investimento ".$uid."|".$userId);
+    } else {
+        $jsonResponse = $response->withStatus(401);
+        $this->logger->addInfo("ERRO: Read all investimento ".$uid."|".$userId);
+    }
+
+    return $jsonResponse
+        ->withHeader('Content-Type', 'application/vnd.api+json')
+        ->withHeader('Access-Control-Allow-Origin', '*');  
+});
 
 
 

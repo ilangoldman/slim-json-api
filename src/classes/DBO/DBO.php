@@ -20,6 +20,7 @@ abstract class DBO {
     public function allowAccess($userId,$type,$id,$method) {
         $sql = "SELECT ".$type." FROM ".$this->table_name.
                " WHERE ".$this->table_name." = ".$id;
+        // var_export($sql);
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
             return ($row[$type] == $userId);
@@ -68,7 +69,6 @@ abstract class DBO {
             );
         }
 
-        // var_export($response);
         return $response;
     }
 
@@ -94,12 +94,6 @@ abstract class DBO {
     }
 
     protected function removeFK($cols) {
-        // var_export($cols);
-        // var_export($this->fk);
-        
-        // if (!isset($this->fk)) return $cols;
-        
-
         foreach($this->fk as $fk) {
             if (array_key_exists($fk,$cols)) unset($cols[$fk]);
         }
@@ -151,7 +145,6 @@ abstract class DBO {
 
 
     // CREATE
-    // needs to be implented on child class
     public function create($info) {
         $this->addCol($info);
         
@@ -159,7 +152,7 @@ abstract class DBO {
         $sql = "INSERT INTO ".$this->table_name.
         " (".$this->getSqlColKeys().")".
         " values (".$values.');';
-        var_export($sql);
+        // var_export($sql);
         $stmt = $this->db->exec($sql);
         return $this->readId();
     }
@@ -195,13 +188,9 @@ abstract class DBO {
         $this->addCol($info);
 
         $setArray = array();
-        // $array = $this->getCol();
         $updateCols = $this->removeFK($this->getSqlCol());
         // var_export($updateCols);
         foreach($updateCols as $k => $v) {
-            // var_export($k."=".$v);
-            // var_export(empty($v));
-            // var_export(str_replace('"','',$v) == '');
             if (str_replace('"','',$v) == '') continue;
             array_push($setArray, $k." = ".$v);
         }

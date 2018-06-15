@@ -1,5 +1,6 @@
 <?php
-namespace DBO;
+namespace DBO\Users;
+use \DBO\DBO;
 
 class InvestidorDBO extends DBO {
     private $criado;
@@ -160,7 +161,7 @@ class InvestidorDBO extends DBO {
             }
         }
 
-        $fk = ["endereco","conta_bancaria","amigo","notificacao"];
+        $fk = ["endereco","conta_bancaria","notificacao","amigo", "conquista", "beneficio"];
         // $response = array();
         foreach($fk as $v) {
             $tblFK = $this->getTablesFK($v);

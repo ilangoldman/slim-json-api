@@ -1,5 +1,6 @@
 <?php
-namespace DBO;
+namespace DBO\Users;
+use \DBO\DBO;
 
 class ContaBancariaDBO extends DBO {
     private $criado;

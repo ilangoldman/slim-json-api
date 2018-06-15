@@ -1,5 +1,6 @@
 <?php
-namespace DBO;
+namespace DBO\Investimento;
+use \DBO\DBO;
 
 class DetalheDBO extends DBO {
     private $criado;
@@ -21,20 +22,18 @@ class DetalheDBO extends DBO {
     // helpers
 
     protected function addCol($info) {
-        $this->emprestimo = $info['emprestimo'];
+        $this->emprestimo = $info['emprestimo'] ?? null;
 
-        $this->tipo = filter_var($info['tipo'], FILTER_SANITIZE_STRING);
-        $this->descricao = filter_var($info['descricao'], FILTER_SANITIZE_STRING); 
-        $this->info = filter_var($info['info'], FILTER_SANITIZE_STRING);         
-        $this->valor = (isset($info['valor'])) ? 
-            filter_var($info['valor'], FILTER_SANITIZE_NUMBER_FLOAT) :
-            "null";
+        $this->tipo = filter_var($info['tipo'], FILTER_SANITIZE_STRING) ?? null;
+        $this->descricao = filter_var($info['descricao'], FILTER_SANITIZE_STRING) ?? null; 
+        $this->info = filter_var($info['info'], FILTER_SANITIZE_STRING) ?? null;  
+        $this->valor = isset($info['valor']) ? 
+            filter_var($info['valor'], FILTER_SANITIZE_NUMBER_FLOAT) : null;
     }
 
     protected function getCol() {
         return array(
             "emprestimo" => $this->emprestimo,
-
             "tipo" => $this->tipo,
             "descricao" => $this->descricao,
             "info" => $this->info,              
@@ -43,14 +42,12 @@ class DetalheDBO extends DBO {
     }
 
     protected function getSqlCol() {
-        return array(
-            "emprestimo" => $this->emprestimo,
-
-            "tipo" => '"'.$this->tipo.'"', 
-            "descricao" => '"'.$this->descricao.'"',
-            "info" => '"'.$this->info.'"',              
-            "valor" => $this->valor
-        );
+        $cols = $this->getCol();
+        $cols["tipo"] = '"'.$this->tipo.'"';
+        $cols["descricao"] = '"'.$this->descricao.'"';
+        $cols["info"] = '"'.$this->info.'"';
+        $cols["valor"] = $this->valor ?? "null";
+        return $cols;
     }
 
     public function getAttributes() {

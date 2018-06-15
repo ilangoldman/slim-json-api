@@ -9,7 +9,7 @@ use \Service\DBOController as DBOController;
 // Add routing
 
 require __DIR__ . './routes/investidor.php';
-// require __DIR__ . './routes/empresa.php';
+require __DIR__ . './routes/empresa.php';
 require __DIR__ . './routes/admin.php';
 
 // CREATE
@@ -30,8 +30,10 @@ $app->post('/{type}', function (Request $request, Response $response, array $arg
         if (!$controller->validarUser($uid,$userId,$userType) &&
             !$controller->validarUserAccess($userId,$userType,$id,$type,$method))
             return $response->withStatus(401);
-    } else {
+    } elseif ($type == 'investidor' || $type == 'empresa') {
         $requestData['data']['attributes']['user'] = $uid;     
+    } else {
+        return $response->withStatus(403);
     }
     
     $dbo = $controller->{$type}();       
@@ -49,6 +51,8 @@ $app->post('/{type}', function (Request $request, Response $response, array $arg
 
         $requestData['data']['attributes'][$userType] = $userId;
         $id = $dbo->create($requestData['data']['attributes']);
+
+        if ($id == null) return $response->withStatus(403);
         
         if(isset($requestData['include'])) {
             foreach($requestData['include'] as $i) {
@@ -83,64 +87,29 @@ $app->post('/{type}', function (Request $request, Response $response, array $arg
 
 // READ
 
-
-
-// $app->get('/{type}', function (Request $request, Response $response, array $args) {
-//     $type = $args['type'];
-
-//     $uid = $request->getHeader('user-id')[0];
-//     $userId = $request->getHeader('id')[0];
-//     $userType = $request->getHeader('user-type')[0];
-
-//     $controller = new DBOController($this->db);
-
-//     if ($controller->validarUser($uid,$userId,$userType)) {
-
-//         $dbo = $controller->{$type}();
-//         $data = $controller->getJSONAPI($dbo,$id);
-
-//         $responseData = array( "data" => $data );
-//         if ($data['relationships'] != null) {
-//             $include = $controller->getIncludes($data['relationships']);
-//             $responseData["include"] = $include;
-//         }
-
-//         $jsonResponse = $response->withJSON($responseData);
-
-//         $this->logger->addInfo("Sucesso: Read generico ".$uid."|".$userId." - ". $id);
-//     } else {
-//         $jsonResponse = $response->withStatus(401);
-
-//         $this->logger->addInfo("ERRO: Read generico ".$uid."|".$userId." - ".$id);
-//     }
-
-//     return $jsonResponse
-//         ->withHeader('Content-Type', 'application/vnd.api+json')
-//         ->withHeader('Access-Control-Allow-Origin', '*');  
-// });
-
 $app->get('/{type}/{id}', function (Request $request, Response $response, array $args) {
     $type = $args['type'];    
     $id = $args['id'];
 
-    $uid = $request->getHeader('user-id')[0];
-    $userId = $request->getHeader('id')[0];
-    $userType = $request->getHeader('user-type')[0];
+    $uid = $request->getHeader('user-id')[0] ?? null;
+    $userId = $request->getHeader('id')[0] ?? null;
+    $userType = $request->getHeader('user-type')[0] ?? null;
 
     $method = $request->getMethod();
 
     $controller = new DBOController($this->db);
+
+    if(!isset($userType) || !isset($userId)) return $response->withStatus(403);
 
     if ($controller->validarUser($uid,$userId,$userType) && 
         $controller->validarUserAccess($userId,$userType,$id,$type,$method)) {
 
         $dbo = $controller->{$type}();
         $data = $controller->getJSONAPI($dbo,$id);
+        if ($data == null) return $response->withStatus(403);
 
         $responseData = array( "data" => $data );
         if ($data['relationships'] != null) {
-            // var_export($data);
-            // var_export($data['relationships']);
             $include = $controller->getIncludes($data['relationships']);
             $responseData["include"] = $include;
         }
