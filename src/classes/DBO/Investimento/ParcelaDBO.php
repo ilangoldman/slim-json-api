@@ -33,20 +33,27 @@ class ParcelaDBO extends DBO {
     
     protected function addCol($info) {
         $this->emprestimo = $info['emprestimo'];
+        $this->investimento = $info['investimento'];
+        $this->parcela_empresa = $info['parcela_empresa'];
+        $this->comprovante = filter_var($info['comprovante'], FILTER_SANITIZE_STRING);
+        // TODO
+    }
+
+    protected function readCol() {
+        $this->emprestimo = $info['emprestimo'];
 
         $this->investimento = $info['investimento'];
         $this->parcela_empresa = $info['parcela_empresa'];
 
-        $this->comprovante = filter_var($info['comprovante'], FILTER_SANITIZE_STRING);
+        $this->comprovante = $info['comprovante'];
         
-        $this->numero = filter_var($info['numero'],FILTER_SANITIZE_NUMBER_INT); 
-        $this->valor = filter_var($info['valor'],FILTER_SANITIZE_NUMBER_FLOAT); 
-        $this->principal = filter_var($info['principal'],FILTER_SANITIZE_NUMBER_FLOAT); 
-        $this->rendimentos = filter_var($info['rendimentos'],FILTER_SANITIZE_NUMBER_FLOAT); 
-        $this->multa = filter_var($info['multa'],FILTER_SANITIZE_NUMBER_FLOAT);
-        $this->ir = filter_var($info['ir'],FILTER_SANITIZE_NUMBER_FLOAT);
+        $this->numero = $info['numero']; 
+        $this->valor = $info['valor']; 
+        $this->principal = $info['principal']; 
+        $this->rendimentos = $info['rendimentos']; 
+        $this->multa = $info['multa'];
+        $this->ir = $info['ir'];
 
-        
     }
 
     protected function getCol() {
@@ -85,8 +92,10 @@ class ParcelaDBO extends DBO {
         var_export($sql);
         $stmt = $this->db->exec($sql);
 
-        $parcelaInvestimento = new Parcela($this->db);
-        $parcelaInvestimento->addParcelasInvestimentos($emprestimo);
+        // TODO
+
+        // $parcelaInvestimento = new Parcela($this->db);
+        // $parcelaInvestimento->addParcelaInvestimento($emprestimo);
 
         return $this->readId();
     }

@@ -37,14 +37,16 @@ class EmprestimoDBO extends DBO {
 
     private function formatStatus($code) {
         $status = array(
-            -1 => "Aguardando Aprovação",
+           -2 => "Deletado",
+           -1 => "Aguardando Aprovação",
             0 => "Disponível para Investimento",
             1 => "Emprestimo Completo",
             2 => "Aguardando Transferencias",
             3 => "Financiado",
             4 => "Pagando Parcelas",
             5 => "Atraso",
-            6 => "Inadimplente"
+            6 => "Inadimplente",
+            7 => "Finalizado"
         );
         return $status[$code];
     }
@@ -194,6 +196,58 @@ class EmprestimoDBO extends DBO {
     }
 
 
+    // READ
+    public function read($id) {
+        $this->setId($id);
+
+        $sql =  "SELECT ".$this->getColKeys().
+                " FROM ".$this->table_name.
+                " WHERE ".$this->table_name." = ".$this->id.
+                " AND status > -2";
+        // var_export($sql);
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            $this->readCol($row);
+        } else {
+            return null;
+        }
+        
+        return $this->getCol();
+    }
+
+    // DELETE
+    public function delete($id) {
+        $this->read($id);
+        if ($this->status > -1) return false;
+
+        $dbo = $this->controller->investimento();
+        $dbo->deleteInvestimentos($id);
+
+        $this->setId($id);
+        $sql = "UPDATE ".$this->table_name.
+               " SET status = -2".
+               " WHERE ".$this->table_name." = ".$id.
+               " AND status < 0;";
+        // var_export($sql);
+
+        $stmt = $this->db->exec($sql);
+        // var_export($stmt);
+        return ($stmt > 0);
+    }
+
+    public function temEmprestimoAtivo($empresa) {
+        $sql = "SELECT count(".$this->table_name.") as ".$this->table_name. 
+            " FROM ".$this->table_name.
+            " WHERE empresa = ".$empresa.
+            " AND status not in (-1,7)";
+        $emprestimo = 0;
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            extract($row);
+        }
+        return ($emprestimo > 0);
+    }
+
     // Business Logic Functions
     
     
@@ -249,22 +303,39 @@ class EmprestimoDBO extends DBO {
                " AND status = 0 AND saldo_devedor != 0";
         // var_export($sql);
         $stmt = $this->db->exec($sql);
+        // var_export ($stmt);
         // if ($stmt == 0) $this->empresaFinanciada();
         return ($stmt > 0);
     }
 
     public function removeInvestimento($investido) {
-        $sql = "UPDATE ".$this->table_name.
-               " SET saldo_devedor = saldo_devedor + ".$investido.
-               " WHERE ".$this->table_name." = ".$this->id.
-               " AND status in (0,2)";
-        $stmt = $this->db->exec($sql);
-        if ($stmt == 0) {
+        $this->read($this->id);
+        $sql =  "UPDATE ".$this->table_name.
+                " SET saldo_devedor = saldo_devedor + ".$investido.
+                " WHERE ".$this->table_name." = ".$this->id.
+                " AND status in (0,2)";
+        // var_export($sql);
+
+        if ($this->status == 2) {
+            $saldo = $this->saldo_devedor;
             $this->empresaNaoFinanciada();
             $stmt = $this->db->exec($sql);
             $dbo = $this->controller->investimento();
             $dbo->getListaDeEspera($this->id, $investido);
+             $sql = "UPDATE ".$this->table_name.
+                    " SET saldo_devedor = ".$saldo.
+                    " WHERE ".$this->table_name." = ".$this->id;
+            $this->db->exec($sql);
+        } else {
+            $stmt = $this->db->exec($sql);
+            if ($stmt == 0) {
+                $this->empresaNaoFinanciada();
+                $stmt = $this->db->exec($sql);
+                $dbo = $this->controller->investimento();
+                $dbo->getListaDeEspera($this->id, $investido);
+            } 
         }
+
         return ($stmt > 0);
     }
 
@@ -300,8 +371,10 @@ class EmprestimoDBO extends DBO {
 
 
     public function getStatus() {
-        $sql = "SELECT status FROM".$this->table_name.
+        $sql = "SELECT status FROM ".$this->table_name.
                " WHERE ".$this->table_name." = ".$this->id;
+        // var_export($sql);
+        $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
             extract($row);
         }

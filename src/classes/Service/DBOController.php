@@ -181,6 +181,10 @@ class DBOController {
         return new Mensagem($this->db);        
     }
 
+    public function notificacao() {
+        return new Notificacao($this->db);        
+    }
+
 
     // Users
 

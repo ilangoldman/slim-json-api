@@ -225,4 +225,13 @@ class InvestidorDBO extends DBO {
         return $this->update($id,$set);
     }
 
+    // DELETE
+    public function delete($id) {
+        $dbo = $this->controller->investimento();
+        if ($dbo->temInvestimentoAtivo($id))
+            return false;
+        $dbo->removeInvestidor($id);
+        return parent::delete($id);
+    }
+
 }

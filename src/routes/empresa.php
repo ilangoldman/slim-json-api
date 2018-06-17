@@ -26,7 +26,7 @@ $app->post('/emprestimo/{id}/parcela', function (Request $request, Response $res
             return $response->withStatus(401);
         }
 
-    $dbo = $controller->{$type}();
+    // $dbo = $controller->{$type}();
 
     $this->db->beginTransaction();
     try {

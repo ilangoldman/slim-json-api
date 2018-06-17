@@ -33,13 +33,15 @@ class InvestimentoDBO extends DBO {
 
     private function formatStatus($code) {
         $status = array(
+           -1 => "Deletado",
             0 => "Lista de Espera",
             1 => "Oferta Aceita",
             2 => "Aguardando Transferencias",
             3 => "Transferencia Realizada",
             4 => "Recebendo Parcelas",
             5 => "Atraso",
-            6 => "Inadimplente"
+            6 => "Inadimplente",
+            7 => "Finalizado"
         );
         return $status[$code];
     }
@@ -67,7 +69,7 @@ class InvestimentoDBO extends DBO {
         $this->emprestimo = $info['emprestimo'];
 
         $this->valor = filter_var($info['valor'],FILTER_SANITIZE_NUMBER_FLOAT);
-        $this->status = 0;
+        $this->status = $info['status'] ?? 0;
 
         $this->getInfoEmprestimo();
 
@@ -173,7 +175,8 @@ class InvestimentoDBO extends DBO {
         $dbo = $this->controller->emprestimo();
         $dbo->setId($this->emprestimo);      
         if ($dbo->addInvestimento($this->valor)) {
-            $this->status = 1;
+            // var_export('here');
+            $info['status'] = 1;
         }
 
         return parent::create($info);
@@ -185,7 +188,8 @@ class InvestimentoDBO extends DBO {
     public function readAll() {
         $sql = "SELECT ".$this->table_name.",".$this->getColKeys().
             " FROM ".$this->table_name.
-            " WHERE investidor = ".$this->investidor;
+            " WHERE investidor = ".$this->investidor.
+            " AND status > -1";
         // var_export($sql);
         $stmt = $this->db->query($sql);
         $result = array();
@@ -196,13 +200,31 @@ class InvestimentoDBO extends DBO {
         return $result;
     }
 
+    public function read($id) {
+        $this->setId($id);
+
+        $sql =  "SELECT ".$this->getColKeys().
+                " FROM ".$this->table_name.
+                " WHERE ".$this->table_name." = ".$this->id.
+                " AND status > -1";
+        // var_export($sql);
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            $this->readCol($row);
+        } else {
+            return null;
+        }
+
+        return $this->getCol();
+    }
+
 
     // UPDATE
     public function updateStatus($code, $valor = null) {
         $strValor = (isset($valor)) ? ', valor = '.$valor : '';  
-        $sql = "UPDATE ".$this->table_name.
-            " SET status = ".$code.$strValor.
-            " WHERE ".$this->table_name." = ".$this->id;
+        $sql =  "UPDATE ".$this->table_name.
+                " SET status = ".$code.$strValor.
+                " WHERE ".$this->table_name." = ".$this->id;
         // var_export($sql);
         $stmt = $this->db->exec($sql);       
     }
@@ -211,30 +233,76 @@ class InvestimentoDBO extends DBO {
         $this->read($id);
 
         $dbo = $this->controller->emprestimo();
+        $dbo->setId($this->emprestimo);
         $dbo->addTransferencia($this->valor);
-        
-        $info['status'] = 3;
-        return parent::updateAll($id,$info);
+
+        $this->status = 3;
+        $this->comprovante = $info['comprovante'];
+
+        $setArray = array();
+        $updateCols = array(
+            "status" => $this->status,
+            "comprovante" => '"'.$this->comprovante.'"'
+        );
+        foreach($updateCols as $k => $v) {
+            if (str_replace('"','',$v) == '') continue;
+            array_push($setArray, $k." = ".$v);
+        }
+        $set = implode(",",$setArray);
+        return $this->update($id,$set);
     }
 
 
 
 
     // DELETE
+    public function deleteInvestimentos($emprestimo) {
+        $sql =  "SELECT ".$this->table_name.
+                " FROM ".$this->table_name.
+                " WHERE emprestimo = ".$emprestimo;
+        $stmt = $this->db->query($sql);
+        while ($row = $stmt->fetch()) {
+            // $this->setId($id);
+            $sql = "UPDATE ".$this->table_name.
+               " SET status = -1".
+               " WHERE ".$this->table_name." = ".$row[$this->table_name].
+               " AND status < 3;";
+            if ($this->db->exec($sql) < 0) return false;
+        }
+        return true;
+    }
+
     public function delete($id) {
-        $this->read($this->id);
+        $this->read($id);
         // var_export($this->emprestimo);
         $dbo = $this->controller->emprestimo();
         $dbo->setId($this->emprestimo);
 
         $statusEmprestimo = $dbo->getStatus();
         $dbo->removeInvestimento($this->valor);
-        if ($statusEmprestimo != $dbo->getStatus()) {
+        if ($statusEmprestimo == 2) {
             $dbo->setStatus($statusEmprestimo);
             $this->updateInvestimentoListaDeEspera($statusEmprestimo);
         }
+        
+        $this->setId($id);
+        $sql = "UPDATE ".$this->table_name.
+               " SET status = -1".
+               " WHERE ".$this->table_name." = ".$id.
+               " AND status < 3;";
+        // var_export($sql);
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
+    }
 
-        return parent::delete($id);
+    public function removeInvestidor($id) {
+        $sql = "UPDATE ".$this->table_name.
+               " SET investidor = null".
+               " WHERE investidor = ".$id.
+               " AND status = -1;";
+        // var_export($sql);
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
     }
 
 
@@ -272,6 +340,7 @@ class InvestimentoDBO extends DBO {
         $sql = "UPDATE ".$this->table_name.
                " SET status = ".$status.
                " WHERE status = 1 AND emprestimo = ".$this->emprestimo;
+        // var_export($sql);            
         $stmt = $this->db->exec($sql);
         return ($stmt > 0);
     }
@@ -296,16 +365,17 @@ class InvestimentoDBO extends DBO {
     // }
 
 
-    public function readTemInvestimentos($investidor) {
-         $sql = "SELECT count(".$this->table_name.") as ".$this->table_name. 
+    public function temInvestimentoAtivo($investidor) {
+        $sql = "SELECT count(".$this->table_name.") as ".$this->table_name. 
             " FROM ".$this->table_name.
-            " WHERE investidor = ".$investidor;
-
+            " WHERE investidor = ".$investidor.
+            " AND status not in (-1,7)";
+        $investimento = 0;
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
             extract($row);
         }
-        return !($investimento > 0);
+        return ($investimento > 0);
     }
 
     

@@ -109,11 +109,12 @@ abstract class DBO {
     }
 
     public function setId($id) {
-        $this->addId($id);
+        $this->id = $id;
     }
 
+    // [deprecated]
     protected function addId($id) {
-        $this->id = $id;
+        $this->setId($id);
     }
 
     protected function getId() {
@@ -159,7 +160,7 @@ abstract class DBO {
 
     // READ
     public function read($id) {
-        $this->addId($id);
+        $this->setId($id);
 
         $sql = "SELECT ".$this->getColKeys().
             " FROM ".$this->table_name.
@@ -178,7 +179,7 @@ abstract class DBO {
         $sql = "select @@IDENTITY as id;";
         $stmt = $this->db->query($sql);
         if ($id = $stmt->fetch()) {
-            $this->addId($id["id"]);
+            $this->setId($id["id"]);
         }
         return $this->getId();
     }
@@ -200,7 +201,7 @@ abstract class DBO {
     }
 
     protected function update($id,$set) {
-        $this->addId($id);
+        $this->setId($id);
         $sql = "UPDATE ".$this->table_name.
                " SET ".$set.
                " WHERE ".$this->table_name." = ".$id.";";
@@ -211,11 +212,11 @@ abstract class DBO {
 
     // DELETE
     public function delete($id) {
-        $this->addId($id);
+        $this->setId($id);
         $sql = "DELETE FROM ".$this->table_name.
                " WHERE ".$this->table_name." = ".$id.";";
         $stmt = $this->db->exec($sql);
-
+        // var_export($sql);
         return ($stmt > 0);
     }
 }

@@ -95,11 +95,11 @@ $app->post('/notificacao/{id}', function (Request $request, Response $response, 
             $users = $requestData['data'];
 
             foreach($users as $u) {
+                var_export($u);            
                 // $u['attributes']['notificacao'] = $id;
-                $dbo->create($u['attributes']);
+                $dbo->create($u);
             }
 
-            
             
             $this->logger->addInfo("Sucesso: Notificacao criada ".$uid." - ". $id);
 
@@ -108,6 +108,49 @@ $app->post('/notificacao/{id}', function (Request $request, Response $response, 
             $this->db->commit();
         } catch(PDOException $e) {
             $this->logger->addInfo("ERRO: Notificacao criada ".$uid." - ". $id.": ".$e->getMessage());
+            
+            $jsonResponse = $response->withStatus(400);
+            $this->db->rollBack();
+        }
+    } else {
+        $this->logger->addInfo("ERRO: NOT ADMIN");
+        $jsonResponse = $response->withStatus(401);
+    }
+        
+    return $jsonResponse
+        ->withHeader('Content-Type', 'application/vnd.api+json')
+        ->withHeader('Access-Control-Allow-Origin', '*');
+});
+
+$app->delete('/notificacao/{id}', function (Request $request, Response $response, array $args) {
+    $id = $args['id'];
+    $uid = $request->getHeader('user-id')[0];
+    $requestData = $request->getParsedBody();
+
+    $controller = new DBOController($this->db);
+
+    if ($controller->validarAdmin($uid)) {
+        $dbo = $controller->notificacao();
+        $this->db->beginTransaction();
+        try {
+            $dbo->setId($id);
+            $users = $requestData['data'];
+    
+            foreach($users as $u) {
+                var_export($u);
+                $u['notificacao'] = $id;
+                // $u['attributes']['notificacao'] = $id;
+                $dbo->delete($u);
+            }
+
+            
+            $this->logger->addInfo("Sucesso: Notificacao deletada ".$uid." - ". $id);
+
+            $jsonResponse = $response->withStatus(200);
+            
+            $this->db->commit();
+        } catch(PDOException $e) {
+            $this->logger->addInfo("ERRO: Notificacao deletada ".$uid." - ". $id.": ".$e->getMessage());
             
             $jsonResponse = $response->withStatus(400);
             $this->db->rollBack();

@@ -231,7 +231,7 @@ $app->delete('/{type}/{id}', function (Request $request, Response $response, arr
         $this->db->beginTransaction();        
         try {
             // $dbo->setId($id);
-            $dbo->delete($id);
+            if (!$dbo->delete($id)) return $response->withStatus(403);
             
             $this->logger->addInfo("Sucesso: Delete generico ".$uid."|".$userId." - ". $id);
 

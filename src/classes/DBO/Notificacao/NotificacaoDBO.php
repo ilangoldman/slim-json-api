@@ -18,8 +18,7 @@ class NotificacaoDBO extends DBO {
     protected function addCol($info) {
         $this->notificacao = $this->id ?? null;
 
-        $this->investidor = $info["investidor"] ?? null;
-        $this->empresa = $info["empresa"] ?? null;
+        $this->{$info['type']} = $info['id'] ?? null;
         $this->status = $info["status"] ?? 0;
     }
 
@@ -33,7 +32,10 @@ class NotificacaoDBO extends DBO {
     }
 
     protected function getSqlCol() {
-        return $this->getCol();
+        $cols = $this->getCol();
+        $cols["investidor"] = $cols["investidor"] ?? "null";
+        $cols["empresa"] = $cols["empresa"] ?? "null";
+        return $cols;
     }
 
     public function allowAccess($userId,$type,$id,$method) {
@@ -41,6 +43,17 @@ class NotificacaoDBO extends DBO {
             return false;
 
         return parent::allowAccess($userId,$type,$id,$method);
+    }
+
+    public function delete($info) {
+        // $this->setId($info['id']);
+        var_export($info);
+        $sql = "DELETE FROM ".$this->table_name.
+               " WHERE ".$this->table_name." = ".$info['notificacao'].
+               " AND ".$info['type']." = ".$info['id'];
+        var_export($sql);
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
     }
 
 }

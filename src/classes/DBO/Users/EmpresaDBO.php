@@ -174,4 +174,12 @@ class EmpresaDBO extends DBO {
         $set = "descricao = ".$this->descricao;
         return $this->update($id,$set);
     }
+
+    // DELETE
+    public function delete($id) {
+        $dbo = $this->controller->emprestimo();
+        if ($dbo->temEmprestimoAtivo($id))
+            return false;
+        return parent::delete($id);
+    }
 }
