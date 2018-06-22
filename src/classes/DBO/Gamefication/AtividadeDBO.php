@@ -16,7 +16,7 @@ class AtividadeDBO extends DBO {
     
     // helpers
 
-    protected function addCol($info) {
+    protected function setCol($info) {
         $this->pontos = $info['pontos'] ?? null;
         $this->titulo = filter_var($info['titulo'], FILTER_SANITIZE_STRING) ?? null;
         $this->descricao = filter_var($info['descricao'], FILTER_SANITIZE_STRING) ?? null;
@@ -37,8 +37,8 @@ class AtividadeDBO extends DBO {
         return $cols;
     }
 
-    public function allowAccess($userId,$type,$id,$method) {
-        if ($type != "admin" && $method != "get")
+    public function allowAccess($userId,$userType,$itemId,$method) {
+        if ($userType != "admin" && $method != "get")
             return false;
         return true;
     }

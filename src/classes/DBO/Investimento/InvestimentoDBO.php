@@ -27,6 +27,7 @@ class InvestimentoDBO extends DBO {
         parent::__construct($db);
         $this->setTableName("investimento");
         $this->setType("investimento");
+        $this->setFK(['investidor','emprestimo']);        
 
         $this->price = new Price();
     }
@@ -46,11 +47,14 @@ class InvestimentoDBO extends DBO {
         return $status[$code];
     }
 
-    public function allowAccess($userId,$type,$id,$method) {
-        if ($type != "investidor")
+    public function allowAccess($userId,$userType,$itemId,$method) {
+        if ($userType != "investidor")
             return false;
+        
+        $this->read($itemId);
+        $dbo = $this->controller->investidor();
 
-        return parent::allowAccess($userId,$type,$id,$method);
+        return parent::allowAccess($userId,$userType,$this->investidor,$method);
     }
 
     //setters
@@ -64,7 +68,7 @@ class InvestimentoDBO extends DBO {
 
     // helper
     
-    protected function addCol($info) {
+    protected function setCol($info) {
         $this->investidor = $info['investidor'];
         $this->emprestimo = $info['emprestimo'];
 
@@ -295,15 +299,15 @@ class InvestimentoDBO extends DBO {
         return ($stmt > 0);
     }
 
-    public function removeInvestidor($id) {
-        $sql = "UPDATE ".$this->table_name.
-               " SET investidor = null".
-               " WHERE investidor = ".$id.
-               " AND status = -1;";
-        // var_export($sql);
-        $stmt = $this->db->exec($sql);
-        return ($stmt > 0);
-    }
+    // public function removeInvestidor($id) {
+    //     $sql = "UPDATE ".$this->table_name.
+    //            " SET investidor = null".
+    //            " WHERE investidor = ".$id.
+    //            " AND status = -1;";
+    //     // var_export($sql);
+    //     $stmt = $this->db->exec($sql);
+    //     return ($stmt > 0);
+    // }
 
 
     // Business Logic

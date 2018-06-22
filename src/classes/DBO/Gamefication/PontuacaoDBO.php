@@ -18,7 +18,7 @@ class PontuacaoDBO extends DBO {
     
     // helpers
 
-    protected function addCol($info) {
+    protected function setCol($info) {
         $this->nivel = filter_var($info['nivel'], FILTER_SANITIZE_NUMBER_INT) ?? null;
         $this->pontos = filter_var($info['pontos'], FILTER_SANITIZE_NUMBER_INT) ?? null;
         $this->titulo = filter_var($info['titulo'], FILTER_SANITIZE_STRING) ?? null;
@@ -42,13 +42,5 @@ class PontuacaoDBO extends DBO {
             "simbolo" => '"'.$this->simbolo.'"'
         );
     }
-
-    // CREATE
-
-    // READ
-  
-
-    // UPDATE
-
 
 }

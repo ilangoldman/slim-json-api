@@ -1,134 +1,206 @@
 <?php
 namespace DBO;
 
-use \Service\DBOController as DBOController;
-
 abstract class DBO {
     protected $db;
-    protected $controller;
-    
+
     protected $table_name;
     protected $id;
     protected $type;
-    protected $fk;    
+    protected $fk;
+    protected $relations; 
 
     public function __construct($db) {
         $this->db = $db;
-        $this->controller = new DBOController($this->db);
     }
 
-    public function allowAccess($userId,$type,$id,$method) {
-        $sql = "SELECT ".$type." FROM ".$this->table_name.
-               " WHERE ".$this->table_name." = ".$id;
+    // Security Access
+    public function allowAccess($userId, $userType, $itemId, $method) {
+        $sql =  "SELECT user".
+                " FROM ".$this->table_name.
+                " WHERE ".$this->table_name." = ".$itemId;
         // var_export($sql);
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
-            return ($row[$type] == $userId);
+            return ($row['user'] == $userId);
         }
         return false;
     }
 
-    // API functions
+    // CRUD Operations
 
-    protected function setType($type) {
-        $this->type = $type;
+    // CREATE
+    public function create() {
+        $keys = $this->getKeys();
+        $values = implode(",",$this->getSQL());
+        $sql =  "INSERT INTO ".$this->table_name.
+                " (".$keys.") values (".$values.');';
+        // var_export($sql);
+        $stmt = $this->db->exec($sql);
+        return $this->readId();
     }
 
-    public function getType() {
-        return $this->type;
-    }
-
-    public function getAttributes() {
-        return $this->read($this->id);
-    }
-
-    public function getRelationships() {
-        return null;
-    }
-
-    protected function getTablesFK($fk) {
-        $sql = "SELECT ".$fk.
-            " FROM ".$fk.
-            " WHERE ".$this->table_name." = ".$this->id;
-        
+    // READ
+    public function read() {
+        $sql =  "SELECT ".$this->getKeys().
+                " FROM ".$this->table_name.
+                " WHERE ".$this->table_name." = '".$this->id."';";
         // var_export($sql);
         $stmt = $this->db->query($sql);
-        $data = array();
-        while ($row = $stmt->fetch()) {
-            $dbo = $this->controller->{$fk}();
-            foreach ($row as $v) {
-                // var_export($row);              
-                $data[] = array(
-                    "type" => $dbo->getType(),
-                    "id" => $v
-                );
-            }
+        if ($row = $stmt->fetch()) {
+            $this->set($row);
+        }
+        return $this->get();
+    }
+    
+    public function readByFK($k,$v) {
+        $sql =  "SELECT ".$this->table_name.','.$this->getKeys().
+                " FROM ".$this->table_name.
+                " WHERE ".$k." = '".$v."';";
+        // var_export($sql);
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            $this->setId($row[$this->table_name]);
+            $this->set($row);
+        }
+        return $this->get();
+    }
 
-            $response = array(
-                "data" => $data
-            );
+    public function readId() {
+        $sql = "select @@IDENTITY as id;";
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            $this->id = $row["id"];
+        }
+        return $this->id;
+    }
+
+    // UPDATE
+    public function update() {
+        $setArray = array();
+        $updateCols = $this->removeFK($this->get());
+        foreach($updateCols as $k => $v) {
+            array_push($setArray, $k." = ".$v);
+        }
+        $set = implode(",",$setArray);
+        return $this->updateSQL($set);
+    }
+
+    protected function updateSQL($set) {
+        $sql = "UPDATE ".$this->table_name.
+               " SET ".$set.
+               " WHERE ".$this->table_name." = '".$this->id."';";
+        // var_export($sql);
+        $stmt = $this->db->exec($sql);
+        return ($stmt > 0);
+    }
+
+    // DELETE
+    public function delete() {
+        $sql = "DELETE FROM ".$this->table_name.
+               " WHERE ".$this->table_name." = '".$this->id."';";
+        $stmt = $this->db->exec($sql);
+        // var_export($sql);
+        return ($stmt > 0);
+    }
+
+    // Relational DB Operations
+
+    // retorna todas as variaveis publicas do objeto
+    public function get($sql = false) {
+        $r = new \ReflectionClass($this);
+        $props = $r->getProperties(\ReflectionProperty::IS_PUBLIC);
+        
+        $cols = array();
+        foreach ($props as $p) {
+            $k = $p->getName();
+            if ($sql) $cols[$k] = $this->$k;
+            else if (isset($this->$k)) $cols[$k] = $this->$k;
         }
 
-        return $response;
+        return $this->removeFK($cols);
+    }
+    public function set($info) {
+        foreach($info as $k => $v) {
+            $this->$k = $v;
+        }
     }
 
-
-    // helper functions
-
-    abstract protected function addCol($info);
-    protected function readCol($info) {
-        $this->addCol($info);
+    public function getFKId () {
+        $fk = implode(",",$this->fk);
+        $sql = "SELECT ".$fk.
+            " FROM ".$this->table_name.
+            " WHERE ".$this->table_name." = ".$this->id;
+        var_export($sql);
+        $stmt = $this->db->query($sql);
+        if ($row = $stmt->fetch()) {
+            foreach ($row as $k => $v) {
+                $data[$k] = $v;
+            }
+        }
+        return $data;
     }
 
-    abstract protected function getCol();
-    abstract protected function getSqlCol();
-
-    protected function getSqlColKeys() {
-        $arrayKeys = array_keys($this->getSqlCol());
-        return implode(",",$arrayKeys);
+    protected function getSQL() {
+        $cols = array();
+        foreach($this->get() as $k => $v) {
+            $cols[$k] = '"'.$v.'"';
+        }
+        return $cols;
     }
-
-    protected function getColKeys() {
-        $arrayKeys = array_keys($this->getCol());
-        return implode(",",$arrayKeys);
+    
+    protected function getKeys() {
+        $keys = array_keys($this->get(true));
+        return implode(",",$keys);
     }
 
     protected function removeFK($cols) {
+        if ($this->fk == null) return $cols;
         foreach($this->fk as $fk) {
             if (array_key_exists($fk,$cols)) unset($cols[$fk]);
         }
         return $cols;
     }
+    
+    // Getters and Setters
+    protected function getTableName() {
+        return $this->table_name;
+    }
+    protected function setTableName($tn) {
+        $this->table_name = $tn;
+    }
 
-    protected function addFK($fkArray) {
-        $this->fk = $fkArray;
+    public function getType() {
+        return $this->type;
+    }
+    protected function setType($type) {
+        $this->type = $type;
+    }
+
+    public function getId() {
+        return $this->id;
+    }
+    public function setId($id) {
+        $this->id = $id;
     }
 
     protected function getFK() {
         return $this->fk;
     }
-
-    public function setId($id) {
-        $this->id = $id;
+    protected function setFK($fk) {
+        $this->fk = $fk;
     }
 
-    // [deprecated]
-    protected function addId($id) {
-        $this->setId($id);
+    public function getRelations() {
+        return $this->relations;
+    }
+    public function setRelations($relations) {
+        $this->relations = $relations;
     }
 
-    protected function getId() {
-        return $this->id;
-    }
+    // Helper Functions 
 
-    protected function getTableName() {
-        return $this->table_name;
-    } 
-
-    protected function setTableName($tn) {
-        $this->table_name = $tn;
-    }
-
+    // Format data
     public function formatDate($date) {
         if ($date) {
             $format = explode("/", $date);
@@ -143,80 +215,32 @@ abstract class DBO {
         }
         return $newDate;
     }
-
-
-    // CREATE
-    public function create($info) {
-        $this->addCol($info);
-        
-        $values = implode(",",$this->getSqlCol());
-        $sql = "INSERT INTO ".$this->table_name.
-        " (".$this->getSqlColKeys().")".
-        " values (".$values.');';
-        // var_export($sql);
-        $stmt = $this->db->exec($sql);
-        return $this->readId();
-    }
-
-    // READ
-    public function read($id) {
-        $this->setId($id);
-
-        $sql = "SELECT ".$this->getColKeys().
-            " FROM ".$this->table_name.
-            " WHERE ".$this->table_name." = ".$this->id;
-        // var_export($sql);
-        $stmt = $this->db->query($sql);
-        if ($row = $stmt->fetch()) {
-            $this->readCol($row);
-            // $this->addCol($row);
-        }
-        
-        return $this->getCol();
-    }
-
-    public function readId() {
-        $sql = "select @@IDENTITY as id;";
-        $stmt = $this->db->query($sql);
-        if ($id = $stmt->fetch()) {
-            $this->setId($id["id"]);
-        }
-        return $this->getId();
-    }
-
-    // UPDATE
-    public function updateAll($id,$info) {
-        $this->addCol($info);
-
-        $setArray = array();
-        $updateCols = $this->removeFK($this->getSqlCol());
-        // var_export($updateCols);
-        foreach($updateCols as $k => $v) {
-            if (str_replace('"','',$v) == '') continue;
-            array_push($setArray, $k." = ".$v);
-        }
-        // var_export($sql);
-        $set = implode(",",$setArray);
-        return $this->update($id,$set);
-    }
-
-    protected function update($id,$set) {
-        $this->setId($id);
-        $sql = "UPDATE ".$this->table_name.
-               " SET ".$set.
-               " WHERE ".$this->table_name." = ".$id.";";
-        // var_export($sql);
-        $stmt = $this->db->exec($sql);
-        return ($stmt > 0);
-    }
-
-    // DELETE
-    public function delete($id) {
-        $this->setId($id);
-        $sql = "DELETE FROM ".$this->table_name.
-               " WHERE ".$this->table_name." = ".$id.";";
-        $stmt = $this->db->exec($sql);
-        // var_export($sql);
-        return ($stmt > 0);
-    }
+     
 }
+
+
+
+//  BACKUP
+
+    // protected function getTablesFK($fk) {
+    //     $sql =  "SELECT ".$fk.
+    //             " FROM ".$fk.
+    //             " WHERE ".$this->table_name." = ".$this->id;
+    //     // var_export($sql);
+    //     $stmt = $this->db->query($sql);
+    //     $data = array();
+    //     while ($row = $stmt->fetch()) {
+    //         $dbo = $this->controller->{$fk}();
+    //         foreach ($row as $v) {
+    //             // var_export($row);              
+    //             $data[] = array(
+    //                 "type" => $dbo->getType(),
+    //                 "id" => $v
+    //             );
+    //         }
+    //         $response = array(
+    //             "data" => $data
+    //         );
+    //     }
+    //     return $response;
+    // }

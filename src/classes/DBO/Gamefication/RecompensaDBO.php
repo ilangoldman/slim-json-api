@@ -16,7 +16,7 @@ class RecompensaDBO extends DBO {
     
     // helpers
 
-    protected function addCol($info) {
+    protected function setCol($info) {
         $this->pontuacao = $info['pontuacao'] ?? null;
 
         $this->titulo = filter_var($info['titulo'], FILTER_SANITIZE_STRING) ?? null;
@@ -39,8 +39,8 @@ class RecompensaDBO extends DBO {
         return $cols;
     }
 
-    public function allowAccess($userId,$type,$id,$method) {
-        if ($type != "admin" && $method != "get")
+    public function allowAccess($userId, $userType, $itemId, $method) {
+        if ($userType != "admin" && $method != "get")
             return false;
         return true;
     }

@@ -32,13 +32,13 @@ class OportunidadeDBO extends EmprestimoDBO {
         return $this->getCol();
     }
 
-    public function getAttributes() {
-        $attrib = $this->read($this->id);
-        if ($attrib == null) return null;
-        unset($attrib['empresa']);
+    // public function getAttributes() {
+    //     $attrib = $this->read($this->id);
+    //     if ($attrib == null) return null;
+    //     unset($attrib['empresa']);
         
-        return $attrib;
-    }
+    //     return $attrib;
+    // }
 
     public function fixPrice(&$attrib) {
         $attrib['taxa'] = filter_var($this->price->calcularTaxa($attrib['rating']) * 1.30,FILTER_SANITIZE_STRING);
@@ -69,8 +69,8 @@ class OportunidadeDBO extends EmprestimoDBO {
     public function delete($id) { return null; }
 
 
-    public function allowAccess($userId,$type,$id,$method) {
-        return ($type == "investidor");      
+    public function allowAccess($userId,$userType,$itemId,$method) {
+        return ($userType == "investidor");      
     }
 
 }

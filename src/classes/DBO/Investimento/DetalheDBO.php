@@ -17,12 +17,13 @@ class DetalheDBO extends DBO {
         parent::__construct($db);
         $this->setTableName("detalhe");
         $this->setType("detalhe");
+        $this->setFK(['emprestimo']);
     }
     
     // helpers
 
     protected function addCol($info) {
-        $this->emprestimo = $info['emprestimo'] ?? null;
+        $this->emprestimo = $info['emprestimo'];
 
         $this->tipo = filter_var($info['tipo'], FILTER_SANITIZE_STRING) ?? null;
         $this->descricao = filter_var($info['descricao'], FILTER_SANITIZE_STRING) ?? null; 
@@ -49,19 +50,5 @@ class DetalheDBO extends DBO {
         $cols["valor"] = $this->valor ?? "null";
         return $cols;
     }
-
-    public function getAttributes() {
-        $cols = $this->read($this->id);
-        unset($cols['emprestimo']);
-        return $cols;
-    }
-
-    // CREATE
-
-    // READ
-  
-
-    // UPDATE
-
 
 }

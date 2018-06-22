@@ -16,7 +16,7 @@ class BeneficioDBO extends DBO {
     
     // helpers
 
-    protected function addCol($info) {
+    protected function setCol($info) {
         $this->investidor = $info['investidor'] ?? null;
         $this->beneficio = $info['beneficio'] ?? null;
     }
