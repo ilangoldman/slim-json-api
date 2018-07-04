@@ -8,13 +8,6 @@ use \DBO\Users\EnderecoDBO as Endereco;
 use \DBO\Users\ContaBancariaDBO as ContaBancaria;
 use \DBO\Users\AmigoDBO as Amigo;
 
-// Gamefication
-use \DBO\Gamefication\PontuacaoDBO as Pontuacao;
-use \DBO\Gamefication\BeneficioDBO as Beneficio;
-use \DBO\Gamefication\RecompensaDBO as Recompensa;
-use \DBO\Gamefication\ConquistaDBO as Conquista;
-use \DBO\Gamefication\AtividadeDBO as Atividade;
-
 // Investimentos
 use \DBO\Investimento\EmprestimoDBO as Emprestimo;
 use \DBO\Investimento\DetalheDBO as Detalhe;
@@ -60,19 +53,6 @@ class ModelController {
 
     public function notificacao() {
         return new Notificacao($this->db);        
-    }
-
-    // Gamefication
-    public function pontuacao() {
-        return new Pontuacao($this->db);
-    }
-
-    public function atividade() {
-        return new Atividade($this->db);
-    }
-
-    public function recompensa() {
-        return new recompensa($this->db);
     }
 
 

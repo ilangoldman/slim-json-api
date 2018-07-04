@@ -106,6 +106,23 @@ class UserController extends Controller {
     }
 
 
+    // Destinatario Routes
+    public function adcNovo($request, $response, $args) {
+        // TODO
+        return $response;
+    }
+
+    public function todosDest($request, $response, $args) {
+        // TODO
+        return $response;
+    }
+    
+    public function detalhesDest($request, $response, $args) {
+        // TODO
+        return $response;
+    }
+
+
     // Business Logic
 
     public function createUser() {

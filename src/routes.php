@@ -8,8 +8,6 @@ use \Psr\Http\Message\ResponseInterface as Response;
 use \Controller\UserController as UserController;
 use \Controller\InvestimentoController as InvestimentoController;
 use \Controller\NotificationController as NotificationController;
-use \Controller\GameficationController as GameficationController;
-
 
 // Routes
 
@@ -44,23 +42,21 @@ $app->group('/{_:user|empresa|investidor}/{uid}', function () {
 
 // especifico da empresa
 $app->group('/empresa/{uid}', function () {
-    // CRUD emprestimo
-    $this->group('/emprestimo', function() {
-        $this->post('', InvestimentoController::class . ':pedirEmprestimo');
+    // CRUD recebiveis
+    $this->group('/adiantamento', function() {
+        $this->post('', InvestimentoController::class . ':pedirAdiantamento');
         $this->get('', InvestimentoController::class . ':pedidos');
-        $this->get('/{id}', InvestimentoController::class . ':detalheEmprestimo');
+        $this->get('/{id}', InvestimentoController::class . ':detalheAdiantamento');
         $this->put('/{id}', InvestimentoController::class . ':editarPedido');
         $this->delete('/{id}', InvestimentoController::class . ':removerPedido');
-        
-        // CRUD parcelas
-        $this->group('{eid}/parcela', function() {
-            $this->post('', InvestimentoController::class . ':pagar');
-            $this->get('', InvestimentoController::class . ':parcelas');
-            // $this->get('/{id}', InvestimentoController::class . ':verParcela');
-        });
     });
 
-    $this->get('/parcela', InvestimentoController::class . ':todasParcelasDaEmpresa');
+    $this->group('/destinatario', function() {
+        $this->post('', UserController::class . ':adcNovo');
+        $this->get('', UserController::class . ':todosDest');
+        $this->get('/{id}', UserController::class . ':detalheDest');
+    });
+
 });
 
 // especifico do investidor
@@ -72,12 +68,6 @@ $app->group('/investidor/{uid}', function () {
         $this->get('/{id}', InvestimentoController::class . ':detalheInvestimento');
         $this->put('/{id}', InvestimentoController::class . ':transferir');
         $this->delete('/{id}', InvestimentoController::class . ':removerOferta');
-        
-        // CRUD parcelas
-        $this->group('/parcela', function() {
-            $this->get('', InvestimentoController::class . ':parcelas');
-            // $this->get('/{id}', InvestimentoController::class . ':detalheParcela');
-        });
     });
 
     // Rodada de Investimento
@@ -86,17 +76,8 @@ $app->group('/investidor/{uid}', function () {
         $this->get('/{id}', InvestimentoController::class . ':detalheOportunidade');
     });
 
-    // $this->get('/parcela', InvestimentoController::class . ':todasParcelasDoInvestidor');
     $this->get('/carteira', InvestimentoController::class . ':carteira');
-    $this->get('/beneficio', GameficationController::class . ':beneficiosGanhos');
-    $this->get('/conquista', GameficationController::class . ':atividadesConquistadas');
-    
 });
-
-// Acesso livre
-$app->get('/recompensa', GameficationController::class . ':recompensas');
-$app->get('/atividade', GameficationController::class . ':atividades');
-$app->get('/pontuacao', GameficationController::class . ':tblPontos');
 
 // especifico para admin
 $app->group('/admin/{uid}', function () {
@@ -113,24 +94,10 @@ $app->group('/admin/{uid}', function () {
     });
 
     // Investimentos 
-    $this->group('/emprestimo/{id}', function() {
+    $this->group('/adiantamento/{id}', function() {
         $this->put('/aprovado', AdminController::class . ':aprovar');
-        $this->put('/transferencia', AdminController::class . ':transferir');
-
+        //$this->put('/transferencia', AdminController::class . ':transferir');
     });
-
-    // Gamefication
-    $this->group('/atividade{id}', function() {
-        $this->put('', AdminController::class . ':adcionarAtividade');
-        $this->delete('', AdminController::class . ':removerAtividade');
-    });
-
-    $this->group('/recompensa/{id}', function() {
-        $this->put('', AdminController::class . ':adcionarRecompensa');
-        $this->delete('', AdminController::class . ':removerRecompensa');
-    });
-
-
 });
 
 
