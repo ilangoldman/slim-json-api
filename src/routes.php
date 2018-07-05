@@ -33,7 +33,7 @@ $app->group('/{_:user|empresa|investidor}/{uid}', function () {
         // $this->delete('/{id}', UserController::class . ':removerConvite');
     });
 
-    $this->group('/notificacao', function() {
+    $this->group('/mensagem', function() {
         $this->get('', NotificationController::class . ':todas');
         $this->get('/{id}', NotificationController::class . ':detalhe');
         $this->put('/{id}', NotificationController::class . ':marcarComoLida');
@@ -51,10 +51,18 @@ $app->group('/empresa/{uid}', function () {
         $this->delete('/{id}', InvestimentoController::class . ':removerPedido');
     });
 
-    $this->group('/destinatario', function() {
+    $this->group('/sacado', function() {
         $this->post('', UserController::class . ':adcNovo');
-        $this->get('', UserController::class . ':todosDest');
-        $this->get('/{id}', UserController::class . ':detalheDest');
+        $this->get('', UserController::class . ':todosSacado');
+        $this->get('/{id}', UserController::class . ':detalheSacado');
+    });
+
+    $this->group('/carteira', function() {
+        $this->post('/fatura', InvestimentoController::class . ':fatura');
+        $this->post('/saque', InvestimentoController::class . ':saque');
+        $this->get('', InvestimentoController::class . ':infoConta');
+        $this->get('/transferencia', InvestimentoController::class . ':transferencias');
+        // $this->get('/{id}', UserController::class . ':detalheSacado');
     });
 
 });

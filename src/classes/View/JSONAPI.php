@@ -51,7 +51,7 @@ class JSONAPI {
             $data = new ResourceObject($data);
         }
         if (is_a($this->data, ResourceObject::class)) {
-            $this->data = array($this->data);
+            $this->data = array();
         }
         $this->data[] = $data;
     }
