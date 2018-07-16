@@ -30,10 +30,6 @@ class ResourceObject {
         foreach($json as $k => $v) {
             $this->$k = $v;
         }
-        // $this->type = $json['type'];
-        // $this->id = $json['id'];
-        // $this->attributes = $json['attributes'];
-        // $this->relationships = $json['relationships'];
     }
 
     // getters and setters
@@ -64,18 +60,12 @@ class ResourceObject {
     public function setRelationships($relationships) {
         $this->relationships = $relationships;
     }
-
-
-
-
     public function setRelationshipsData($data) {
         $this->relationships['data'] = $data;
     }
     public function addRelationshipsData($data) {
         $this->relationships['data'][] = $data;
     }
-
-
     public function addRelationships($data, $type=null) {
         if (!is_a($data, ResourceObject::class)) {
             $data = new ResourceObject($data);

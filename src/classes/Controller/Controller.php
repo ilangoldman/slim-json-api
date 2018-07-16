@@ -28,6 +28,10 @@ abstract class Controller {
     }
 
     // CRUD Operations
+
+    // cria uma nova classe no BD de um model generico
+    // $data é a classe DBO ja preenchida
+    // $fk é a as chaves da tabela q a serem adcionadas
     protected function create($data,$fk = []) {
         $model = $this->models->{$data->getType()}();
         $info = $data->getAttributes();
@@ -38,6 +42,8 @@ abstract class Controller {
         return $model->create();
     }
 
+    // le os attributos de um modelo dbo generico no formato da JSON API
+    // $model é a classe DBO
     protected function read($model) {
         $data = $this->view->getData();
         $data->setType($model->getType());
@@ -59,12 +65,10 @@ abstract class Controller {
     }
 
     protected function update($data) {
-
-        $relationshipDBO = $controller->{$data['type']}();
-        $relationshipDBO->updateAll($rId,$data['attributes']);
+        // TODO
     }
 
     protected function delete() {
-
+        // TODO
     }
 }

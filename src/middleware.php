@@ -15,7 +15,8 @@ use \Psr\Http\Message\ResponseInterface as Response;
 $app->add(function (Request $request, Response $response, callable $next) {
     // Use the PSR 7 $response object
     
-    // firebase auth
+    // [add firebase auth here]
+
     $response = $next($request, $response);
     return $response
         ->withHeader('Content-Type', 'application/vnd.api+json')

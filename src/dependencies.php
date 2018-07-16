@@ -12,7 +12,7 @@ $container['logger'] = function ($c) {
     return $logger;
 };
 
-
+// PDO DB config
 $container['db'] = function ($c) {
     $db = $c->get('settings')['db'];
     try {

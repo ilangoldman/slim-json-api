@@ -1,3 +1,5 @@
+# Arquivo yaml para deploy no Google Cloud Plataform
+# App Engine Flex Environment
 
 runtime: php
 env: flex
@@ -6,10 +8,11 @@ runtime_config:
   document_root: public
 
 env_variables:
-  FIREBASE_PROJECT_ID: 'upcash-md'
+  FIREBASE_PROJECT_ID: 'tcc-nan'
 
 
 # only for dev tests
+# comment this lines for prod
 manual_scaling:
   instances: 1
 resources:
@@ -20,15 +23,4 @@ resources:
 
 # api_version: 1
 # threadsafe: true
-
-# runtime: php55
-# application: upcash-md
-# service: backend
-
-# handlers:
-# - url: /users\.php
-#   script: users.php
-
-# - url: /investimentos/read\.php
-#   script: investimentos/read.php
 

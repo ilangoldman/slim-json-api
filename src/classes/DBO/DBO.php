@@ -15,11 +15,13 @@ abstract class DBO {
     }
 
     // Security Access
+
+    // forma generica de verificar se o user pode acessar aquela info
+    // deve ser realizado um override caso a tbl não esteja diretamente ligado a ela 
     public function allowAccess($userId, $userType, $itemId, $method) {
         $sql =  "SELECT user".
                 " FROM ".$this->table_name.
                 " WHERE ".$this->table_name." = ".$itemId;
-        // var_export($sql);
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
             return ($row['user'] == $userId);
@@ -35,7 +37,6 @@ abstract class DBO {
         $values = implode(",",$this->getSQL());
         $sql =  "INSERT INTO ".$this->table_name.
                 " (".$keys.") values (".$values.');';
-        // var_export($sql);
         $stmt = $this->db->exec($sql);
         return $this->readId();
     }
@@ -45,7 +46,6 @@ abstract class DBO {
         $sql =  "SELECT ".$this->getKeys().
                 " FROM ".$this->table_name.
                 " WHERE ".$this->table_name." = '".$this->id."';";
-        // var_export($sql);
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
             $this->set($row);
@@ -53,11 +53,11 @@ abstract class DBO {
         return $this->get();
     }
     
+    // recebe a fk e o valor a ser verificado
     public function readByFK($k,$v) {
         $sql =  "SELECT ".$this->table_name.','.$this->getKeys().
                 " FROM ".$this->table_name.
                 " WHERE ".$k." = '".$v."';";
-        // var_export($sql);
         $stmt = $this->db->query($sql);
         if ($row = $stmt->fetch()) {
             $this->setId($row[$this->table_name]);
@@ -66,6 +66,8 @@ abstract class DBO {
         return $this->get();
     }
 
+    // retorna a pk do ultimo elemento adcionado na tbl
+    // usar apenas em casos de adcionar apenas 1 row na tbl
     public function readId() {
         $sql = "select @@IDENTITY as id;";
         $stmt = $this->db->query($sql);
@@ -90,7 +92,6 @@ abstract class DBO {
         $sql = "UPDATE ".$this->table_name.
                " SET ".$set.
                " WHERE ".$this->table_name." = '".$this->id."';";
-        // var_export($sql);
         $stmt = $this->db->exec($sql);
         return ($stmt > 0);
     }
@@ -100,7 +101,6 @@ abstract class DBO {
         $sql = "DELETE FROM ".$this->table_name.
                " WHERE ".$this->table_name." = '".$this->id."';";
         $stmt = $this->db->exec($sql);
-        // var_export($sql);
         return ($stmt > 0);
     }
 
@@ -217,30 +217,3 @@ abstract class DBO {
     }
      
 }
-
-
-
-//  BACKUP
-
-    // protected function getTablesFK($fk) {
-    //     $sql =  "SELECT ".$fk.
-    //             " FROM ".$fk.
-    //             " WHERE ".$this->table_name." = ".$this->id;
-    //     // var_export($sql);
-    //     $stmt = $this->db->query($sql);
-    //     $data = array();
-    //     while ($row = $stmt->fetch()) {
-    //         $dbo = $this->controller->{$fk}();
-    //         foreach ($row as $v) {
-    //             // var_export($row);              
-    //             $data[] = array(
-    //                 "type" => $dbo->getType(),
-    //                 "id" => $v
-    //             );
-    //         }
-    //         $response = array(
-    //             "data" => $data
-    //         );
-    //     }
-    //     return $response;
-    // }
